@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function CreateRoomPage({ onBack }) {
+function CreateRoomPage({ onBack, onCreate }) {
   const [hostName, setHostName] = useState('')
   const [category, setCategory] = useState('Opće znanje')
   const [questionCount, setQuestionCount] = useState('10')
@@ -14,9 +14,12 @@ function CreateRoomPage({ onBack }) {
       return
     }
 
-    alert(
-      `Soba će biti kreirana za ${hostName} — ${category}, ${questionCount} pitanja.`
-    )
+    onCreate({
+      hostName: hostName.trim(),
+      category,
+      questionCount,
+      timeLimit,
+    })
   }
 
   return (
@@ -28,6 +31,7 @@ function CreateRoomPage({ onBack }) {
       <div className="form-card">
         <div className="form-heading">
           <span className="form-icon">🎮</span>
+
           <div>
             <span className="eyebrow">Nova partija</span>
             <h1>Kreiraj sobu</h1>
@@ -35,12 +39,13 @@ function CreateRoomPage({ onBack }) {
         </div>
 
         <p className="form-description">
-          Podesi osnovna pravila igre. Ostale opcije dodat ćemo kasnije.
+          Podesi osnovna pravila igre i otvori čekaonicu za svoje prijatelje.
         </p>
 
         <form onSubmit={handleSubmit}>
           <label className="form-field">
             <span>Tvoje ime</span>
+
             <input
               type="text"
               placeholder="Naprimjer: Belko"
@@ -52,6 +57,7 @@ function CreateRoomPage({ onBack }) {
 
           <label className="form-field">
             <span>Kategorija</span>
+
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
@@ -70,6 +76,7 @@ function CreateRoomPage({ onBack }) {
           <div className="form-row">
             <label className="form-field">
               <span>Broj pitanja</span>
+
               <select
                 value={questionCount}
                 onChange={(event) => setQuestionCount(event.target.value)}
@@ -83,6 +90,7 @@ function CreateRoomPage({ onBack }) {
 
             <label className="form-field">
               <span>Vrijeme po pitanju</span>
+
               <select
                 value={timeLimit}
                 onChange={(event) => setTimeLimit(event.target.value)}
