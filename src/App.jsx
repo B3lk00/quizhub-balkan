@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './lib/supabase'
+import { useState } from 'react'
 import './App.css'
+import { supabase } from './lib/supabase'
 import HomePage from './pages/HomePage'
 import CreateRoomPage from './pages/CreateRoomPage'
 import JoinRoomPage from './pages/JoinRoomPage'
@@ -16,7 +16,7 @@ function App() {
   const [players, setPlayers] = useState([])
   const [finalScore, setFinalScore] = useState(0)
   const [gameQuestions, setGameQuestions] = useState([])
-
+  
   function goHome() {
   setCurrentPage('home')
   setCurrentQuestion(0)
@@ -44,102 +44,181 @@ function leaveRoom() {
     window.scrollTo(0, 0)
   }
 
-  function createRoom(settings) {
-    const roomCode = Math.floor(100000 + Math.random() * 900000).toString()
+  async function createRoom(settings) {
+  const roomCode = Math.floor(
+    100000 + Math.random() * 900000,
+  ).toString()
 
-    setRoomData({
-      code: roomCode,
-      category: settings.category,
-      questionCount: settings.questionCount,
-      timeLimit: settings.timeLimit,
-      players: [settings.hostName],
-    })
+  const { data: createdRoom, error: roomError } =
+    await supabase
+      .from('rooms')
+      .insert({
+        code: roomCode,
+        category: settings.category,
+        question_count: Number(settings.questionCount),
+        time_limit: Number(settings.timeLimit),
+        status: 'lobby',
+        current_question: 0,
+      })
+      .select()
+      .single()
 
-    setPlayers([
-      {
-        id: 1,
+  if (roomError) {
+    console.error('Greška pri kreiranju sobe:', roomError)
+    alert('Nije moguće kreirati sobu. Pokušaj ponovo.')
+    return
+  }
+
+  const { data: createdHost, error: playerError } =
+    await supabase
+      .from('players')
+      .insert({
+        room_id: createdRoom.id,
         name: settings.hostName,
         score: 0,
-        correctAnswers: 0,
-        isCurrentPlayer: true,
-        isHost: true,
-      },
-      {
-        id: 2,
-        name: 'Amar',
-        score: 0,
-        correctAnswers: 0,
-        isCurrentPlayer: false,
-        isHost: false,
-      },
-      {
-        id: 3,
-        name: 'Lejla',
-        score: 0,
-        correctAnswers: 0,
-        isCurrentPlayer: false,
-        isHost: false,
-      },
-      {
-        id: 4,
-        name: 'Adnan',
-        score: 0,
-        correctAnswers: 0,
-        isCurrentPlayer: false,
-        isHost: false,
-      },
-    ])
+        correct_answers: 0,
+        is_host: true,
+      })
+      .select()
+      .single()
 
-    setCurrentQuestion(0)
-    setCurrentPage('lobby')
-    window.scrollTo(0, 0)
-  }
-
-  function joinRoom({ playerName, roomCode }) {
-  if (!roomData) {
-    alert(
-      'Trenutno nema kreirane sobe. Prvo kreiraj sobu pa kopiraj njen kod.',
+  if (playerError) {
+    console.error(
+      'Greška pri dodavanju domaćina:',
+      playerError,
     )
+
+    await supabase
+      .from('rooms')
+      .delete()
+      .eq('id', createdRoom.id)
+
+    alert('Soba je kreirana, ali domaćin nije dodat.')
     return
   }
 
-  if (roomCode !== roomData.code) {
-    alert('Kod sobe nije ispravan.')
-    return
-  }
+  setRoomData({
+    id: createdRoom.id,
+    code: createdRoom.code,
+    category: createdRoom.category,
+    questionCount: createdRoom.question_count,
+    timeLimit: createdRoom.time_limit,
+    status: createdRoom.status,
+  })
 
-  const playerAlreadyExists = players.some(
-    (player) =>
-      player.name.toLowerCase() === playerName.toLowerCase(),
-  )
-
-  if (playerAlreadyExists) {
-    alert('Igrač sa tim imenom je već u sobi.')
-    return
-  }
-
-  const newPlayer = {
-    id: Date.now(),
-    name: playerName,
-    score: 0,
-    correctAnswers: 0,
-    isCurrentPlayer: true,
-    isHost: false,
-  }
-
-  setPlayers((currentPlayers) => [
-    ...currentPlayers.map((player) => ({
-      ...player,
-      isCurrentPlayer: false,
-    })),
-    newPlayer,
+  setPlayers([
+    {
+      id: createdHost.id,
+      name: createdHost.name,
+      score: createdHost.score,
+      correctAnswers: createdHost.correct_answers,
+      isCurrentPlayer: true,
+      isHost: createdHost.is_host,
+    },
   ])
 
-  setRoomData((currentRoom) => ({
-    ...currentRoom,
-    players: [...currentRoom.players, playerName],
-  }))
+  setCurrentQuestion(0)
+  setCurrentPage('lobby')
+  window.scrollTo(0, 0)
+}
+async function joinRoom({ playerName, roomCode }) {
+  const cleanName = playerName.trim()
+  const cleanCode = roomCode.trim()
 
+  const { data: foundRoom, error: roomError } =
+    await supabase
+      .from('rooms')
+      .select('*')
+      .eq('code', cleanCode)
+      .single()
+
+  if (roomError || !foundRoom) {
+    console.error('Greška pri pronalasku sobe:', roomError)
+
+    alert('Soba sa tim kodom ne postoji.')
+    return
+  }
+
+  if (foundRoom.status !== 'lobby') {
+    alert('Ova partija je već počela ili je završena.')
+    return
+  }
+
+  const { data: existingPlayer } = await supabase
+    .from('players')
+    .select('id')
+    .eq('room_id', foundRoom.id)
+    .ilike('name', cleanName)
+    .maybeSingle()
+
+  if (existingPlayer) {
+    alert('Igrač sa tim imenom je već u ovoj sobi.')
+    return
+  }
+
+  const { data: createdPlayer, error: playerError } =
+    await supabase
+      .from('players')
+      .insert({
+        room_id: foundRoom.id,
+        name: cleanName,
+        score: 0,
+        correct_answers: 0,
+        is_host: false,
+      })
+      .select()
+      .single()
+
+  if (playerError) {
+    console.error(
+      'Greška pri pridruživanju sobi:',
+      playerError,
+    )
+
+    if (playerError.code === '23505') {
+      alert('Igrač sa tim imenom je već u sobi.')
+      return
+    }
+
+    alert('Nije moguće pridružiti se sobi.')
+    return
+  }
+
+  const { data: roomPlayers, error: playersError } =
+    await supabase
+      .from('players')
+      .select('*')
+      .eq('room_id', foundRoom.id)
+      .order('created_at', { ascending: true })
+
+  if (playersError) {
+    console.error(
+      'Greška pri učitavanju igrača:',
+      playersError,
+    )
+  }
+
+  setRoomData({
+    id: foundRoom.id,
+    code: foundRoom.code,
+    category: foundRoom.category,
+    questionCount: foundRoom.question_count,
+    timeLimit: foundRoom.time_limit,
+    status: foundRoom.status,
+  })
+
+  setPlayers(
+    (roomPlayers || [createdPlayer]).map((player) => ({
+      id: player.id,
+      name: player.name,
+      score: player.score,
+      correctAnswers: player.correct_answers,
+      isHost: player.is_host,
+      isCurrentPlayer: player.id === createdPlayer.id,
+    })),
+  )
+
+  setCurrentQuestion(foundRoom.current_question || 0)
   setCurrentPage('lobby')
   window.scrollTo(0, 0)
 }
@@ -386,24 +465,6 @@ function completeAnswer(points) {
       )}
     </main>
   )
-
-  useEffect(() => {
-  async function testSupabase() {
-    const { error } = await supabase
-      .from('rooms')
-      .select('*')
-      .limit(1)
-
-    if (error) {
-      console.log('Supabase odgovor:', error.message)
-      return
-    }
-
-    console.log('Supabase je povezan.')
-  }
-
-  testSupabase()
-}, [])
 
 }
 
