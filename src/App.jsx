@@ -17,13 +17,21 @@ function App() {
   const [gameQuestions, setGameQuestions] = useState([])
 
   function goHome() {
-    setCurrentPage('home')
-    setRoomData(null)
-    setCurrentQuestion(0)
-    setPlayers([])
-    setFinalScore(0)
-    window.scrollTo(0, 0)
-  }
+  setCurrentPage('home')
+  setCurrentQuestion(0)
+  setFinalScore(0)
+  window.scrollTo(0, 0)
+}
+
+function leaveRoom() {
+  setCurrentPage('home')
+  setRoomData(null)
+  setPlayers([])
+  setGameQuestions([])
+  setCurrentQuestion(0)
+  setFinalScore(0)
+  window.scrollTo(0, 0)
+}
 
   function openCreateRoom() {
     setCurrentPage('create')
@@ -53,6 +61,7 @@ function App() {
         score: 0,
         correctAnswers: 0,
         isCurrentPlayer: true,
+        isHost: true,
       },
       {
         id: 2,
@@ -60,6 +69,7 @@ function App() {
         score: 0,
         correctAnswers: 0,
         isCurrentPlayer: false,
+        isHost: false,
       },
       {
         id: 3,
@@ -67,6 +77,7 @@ function App() {
         score: 0,
         correctAnswers: 0,
         isCurrentPlayer: false,
+        isHost: false,
       },
       {
         id: 4,
@@ -74,6 +85,7 @@ function App() {
         score: 0,
         correctAnswers: 0,
         isCurrentPlayer: false,
+        isHost: false,
       },
     ])
 
@@ -81,6 +93,55 @@ function App() {
     setCurrentPage('lobby')
     window.scrollTo(0, 0)
   }
+
+  function joinRoom({ playerName, roomCode }) {
+  if (!roomData) {
+    alert(
+      'Trenutno nema kreirane sobe. Prvo kreiraj sobu pa kopiraj njen kod.',
+    )
+    return
+  }
+
+  if (roomCode !== roomData.code) {
+    alert('Kod sobe nije ispravan.')
+    return
+  }
+
+  const playerAlreadyExists = players.some(
+    (player) =>
+      player.name.toLowerCase() === playerName.toLowerCase(),
+  )
+
+  if (playerAlreadyExists) {
+    alert('Igrač sa tim imenom je već u sobi.')
+    return
+  }
+
+  const newPlayer = {
+    id: Date.now(),
+    name: playerName,
+    score: 0,
+    correctAnswers: 0,
+    isCurrentPlayer: true,
+    isHost: false,
+  }
+
+  setPlayers((currentPlayers) => [
+    ...currentPlayers.map((player) => ({
+      ...player,
+      isCurrentPlayer: false,
+    })),
+    newPlayer,
+  ])
+
+  setRoomData((currentRoom) => ({
+    ...currentRoom,
+    players: [...currentRoom.players, playerName],
+  }))
+
+  setCurrentPage('lobby')
+  window.scrollTo(0, 0)
+}
 
   function shuffleQuestions(questionList) {
   return [...questionList].sort(() => Math.random() - 0.5)
@@ -240,6 +301,7 @@ function completeAnswer(points) {
   const currentPlayer = players.find(
     (player) => player.isCurrentPlayer,
   )
+  const isCurrentPlayerHost = currentPlayer?.isHost === true
 
   return (
     <main className="app">
@@ -275,18 +337,22 @@ function completeAnswer(points) {
       )}
 
       {currentPage === 'join' && (
-        <JoinRoomPage onBack={goHome} />
-      )}
+  <JoinRoomPage
+    onBack={goHome}
+    onJoin={joinRoom}
+  />
+)}
 
       {currentPage === 'lobby' && roomData && (
-        <LobbyPage
-          roomData={{
-            ...roomData,
-            players: players.map((player) => player.name),
-            onStart: startQuiz,
-          }}
-          onBack={goHome}
-        />
+     <LobbyPage
+  roomData={{
+    ...roomData,
+    players: players.map((player) => player.name),
+    onStart: startQuiz,
+    isHost: isCurrentPlayerHost,
+  }}
+  onBack={goHome}
+/>
       )}
 
       {currentPage === 'quiz' && roomData && gameQuestions.length > 0 && (

@@ -70,13 +70,19 @@ function LobbyPage({ roomData, onBack }) {
             <strong>{roomData.timeLimit} sekundi</strong>
           </div>
 
-         <button
-          className="submit-button lobby-start-button"
-          onClick={roomData.onStart}
-        >
-          Pokreni kviz
-           <span>▶</span>
-           </button>
+        {roomData.isHost ? (
+  <button
+    className="start-quiz-button"
+    onClick={roomData.onStart}
+  >
+    Pokreni kviz
+  </button>
+) : (
+  <div className="waiting-for-host">
+    <span className="waiting-dot"></span>
+    Čekanje da domaćin pokrene kviz...
+  </div>
+)}
 
           <p className="lobby-note">
             Za početak je dovoljan jedan igrač. Kasnije ćemo dodati pravo
