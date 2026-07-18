@@ -2,28 +2,102 @@ import { useEffect, useState } from 'react'
 
 export const allQuestions = [
   {
-    question: 'Koji je glavni grad Bosne i Hercegovine?',
-    answers: ['Mostar', 'Sarajevo', 'Tuzla', 'Zenica'],
-    correctAnswer: 1,
-  },
-  {
-    question: 'Koja marka proizvodi model A5?',
-    answers: ['BMW', 'Mercedes', 'Audi', 'Volkswagen'],
-    correctAnswer: 2,
-  },
-  {
+    category: 'opce',
     question: 'Koliko kontinenata postoji?',
     answers: ['5', '6', '7', '8'],
     correctAnswer: 2,
   },
   {
+    category: 'opce',
+    question: 'Koliko dana ima prijestupna godina?',
+    answers: ['364', '365', '366', '367'],
+    correctAnswer: 2,
+  },
+  {
+    category: 'opce',
+    question: 'Koji je najveći sisar na svijetu?',
+    answers: ['Slon', 'Plavi kit', 'Žirafa', 'Nosorog'],
+    correctAnswer: 1,
+  },
+
+  {
+    category: 'geografija',
+    question: 'Koji je glavni grad Bosne i Hercegovine?',
+    answers: ['Mostar', 'Sarajevo', 'Tuzla', 'Zenica'],
+    correctAnswer: 1,
+  },
+  {
+    category: 'geografija',
+    question: 'Koja je najveća država na svijetu?',
+    answers: ['Kanada', 'Kina', 'Rusija', 'SAD'],
+    correctAnswer: 2,
+  },
+  {
+    category: 'geografija',
+    question: 'Koja rijeka protiče kroz London?',
+    answers: ['Dunav', 'Temza', 'Sena', 'Rajna'],
+    correctAnswer: 1,
+  },
+
+  {
+    category: 'sport',
+    question: 'Koliko igrača jedan fudbalski tim ima na terenu?',
+    answers: ['9', '10', '11', '12'],
+    correctAnswer: 2,
+  },
+  {
+    category: 'sport',
+    question: 'Koliko traje regularna fudbalska utakmica?',
+    answers: ['60 minuta', '80 minuta', '90 minuta', '100 minuta'],
+    correctAnswer: 2,
+  },
+  {
+    category: 'sport',
+    question: 'U kojem sportu se koristi reket i loptica preko mreže?',
+    answers: ['Golf', 'Tenis', 'Rukomet', 'Vaterpolo'],
+    correctAnswer: 1,
+  },
+
+  {
+    category: 'automobili',
+    question: 'Koja marka proizvodi model A5?',
+    answers: ['BMW', 'Mercedes', 'Audi', 'Volkswagen'],
+    correctAnswer: 2,
+  },
+  {
+    category: 'automobili',
+    question: 'Šta znači oznaka TDI?',
+    answers: [
+      'Benzinski motor',
+      'Dizelski motor s direktnim ubrizgavanjem',
+      'Električni motor',
+      'Hibridni pogon',
+    ],
+    correctAnswer: 1,
+  },
+  {
+    category: 'automobili',
+    question: 'Koji dio automobila puni akumulator tokom vožnje?',
+    answers: ['Starter', 'Alternator', 'Hladnjak', 'Turbina'],
+    correctAnswer: 1,
+  },
+
+  {
+    category: 'nauka',
     question: 'Koja planeta je najbliža Suncu?',
     answers: ['Venera', 'Mars', 'Merkur', 'Jupiter'],
     correctAnswer: 2,
   },
   {
-    question: 'Koliko igrača jedan fudbalski tim ima na terenu?',
-    answers: ['9', '10', '11', '12'],
+    category: 'nauka',
+    question: 'Koja je hemijska oznaka za vodu?',
+    answers: ['CO2', 'H2O', 'O2', 'NaCl'],
+    correctAnswer: 1,
+  },
+  {
+    category: 'nauka',
+    question: 'Koji organ pumpa krv kroz ljudsko tijelo?',
+    answers: ['Pluća', 'Jetra', 'Srce', 'Bubrezi'],
     correctAnswer: 2,
   },
 ]

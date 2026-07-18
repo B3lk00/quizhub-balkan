@@ -82,13 +82,78 @@ function App() {
   return [...questionList].sort(() => Math.random() - 0.5)
 }
 
- function startQuiz() {
-  const requestedQuestionCount = Number(roomData.questionCount)
+function normalizeCategory(category) {
+  const value = String(category || '')
+    .toLowerCase()
+    .trim()
 
-  const selectedQuestions = shuffleQuestions(allQuestions).slice(
+  if (
+    value.includes('sve') ||
+    value.includes('random') ||
+    value.includes('miješano') ||
+    value.includes('mjesovito')
+  ) {
+    return 'sve'
+  }
+
+  if (value.includes('opć') || value.includes('opc')) {
+    return 'opce'
+  }
+
+  if (value.includes('geograf')) {
+    return 'geografija'
+  }
+
+  if (value.includes('sport')) {
+    return 'sport'
+  }
+
+  if (
+    value.includes('auto') ||
+    value.includes('vozil')
+  ) {
+    return 'automobili'
+  }
+
+  if (
+    value.includes('nauk') ||
+    value.includes('znan')
+  ) {
+    return 'nauka'
+  }
+
+  return value
+}
+
+function createGameQuestions(category, questionCount) {
+  const normalizedCategory = normalizeCategory(category)
+
+  const availableQuestions =
+    normalizedCategory === 'sve'
+      ? allQuestions
+      : allQuestions.filter(
+          (question) =>
+            question.category === normalizedCategory,
+        )
+
+  const requestedCount = Number(questionCount)
+
+  return shuffleQuestions(availableQuestions).slice(
     0,
-    requestedQuestionCount,
+    requestedCount,
   )
+}
+
+function startQuiz() {
+  const selectedQuestions = createGameQuestions(
+    roomData.category,
+    roomData.questionCount,
+  )
+
+  if (selectedQuestions.length === 0) {
+    alert('Za ovu kategoriju trenutno nema dostupnih pitanja.')
+    return
+  }
 
   setGameQuestions(selectedQuestions)
   setCurrentQuestion(0)
@@ -140,12 +205,10 @@ function completeAnswer(points) {
 }
 
   function restartQuiz() {
-  const requestedQuestionCount = Number(roomData.questionCount)
-
-  const selectedQuestions = shuffleQuestions(allQuestions).slice(
-    0,
-    requestedQuestionCount,
-  )
+ const selectedQuestions = createGameQuestions(
+  roomData.category,
+  roomData.questionCount,
+)
 
   setPlayers((currentPlayers) =>
     currentPlayers.map((player) => ({
