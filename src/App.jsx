@@ -386,9 +386,8 @@ function completeAnswer(points) {
       )}
     </main>
   )
-}
 
-useEffect(() => {
+  useEffect(() => {
   async function testSupabase() {
     const { error } = await supabase
       .from('rooms')
@@ -405,5 +404,8 @@ useEffect(() => {
 
   testSupabase()
 }, [])
+
+}
+
 
 export default App
