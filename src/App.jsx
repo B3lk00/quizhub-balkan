@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import { supabase } from './lib/supabase'
 import HomePage from './pages/HomePage'
@@ -15,8 +15,115 @@ function App() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [players, setPlayers] = useState([])
   const [finalScore, setFinalScore] = useState(0)
+  const [currentPlayerId, setCurrentPlayerId] = useState(null)
   const [gameQuestions, setGameQuestions] = useState([])
   
+useEffect(() => {
+  if (!roomData?.id || !currentPlayerId) {
+    return
+  }
+
+  const playersChannel = supabase
+    .channel(`room-players-${roomData.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'players',
+        filter: `room_id=eq.${roomData.id}`,
+      },
+      () => {
+        loadRoomPlayers(roomData.id, currentPlayerId)
+      },
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(playersChannel)
+  }
+}, [roomData?.id, currentPlayerId])
+
+useEffect(() => {
+  if (!roomData?.id) {
+    return
+  }
+
+  const roomChannel = supabase
+    .channel(`room-status-${roomData.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'rooms',
+        filter: `id=eq.${roomData.id}`,
+      },
+      (payload) => {
+        const updatedRoom = payload.new
+
+        setRoomData((previousRoom) => ({
+          ...previousRoom,
+          status: updatedRoom.status,
+          currentQuestion: updatedRoom.current_question,
+        }))
+
+        if (updatedRoom.status === 'playing') {
+          const selectedQuestions = createGameQuestions(
+            updatedRoom.category,
+            updatedRoom.question_count,
+          )
+
+          setGameQuestions(selectedQuestions)
+          setCurrentQuestion(updatedRoom.current_question || 0)
+          setFinalScore(0)
+          setCurrentPage('quiz')
+          window.scrollTo(0, 0)
+        }
+
+        if (updatedRoom.status === 'finished') {
+          setCurrentPage('leaderboard')
+          window.scrollTo(0, 0)
+        }
+      },
+    )
+    .subscribe((status, error) => {
+      console.log('Room Realtime status:', status)
+
+      if (error) {
+        console.error('Room Realtime greška:', error)
+      }
+    })
+
+  return () => {
+    supabase.removeChannel(roomChannel)
+  }
+}, [roomData?.id])
+
+async function loadRoomPlayers(roomId, currentPlayerId) {
+  const { data, error } = await supabase
+    .from('players')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    console.error('Greška pri učitavanju igrača:', error)
+    return
+  }
+
+  setPlayers(
+    (data || []).map((player) => ({
+      id: player.id,
+      name: player.name,
+      score: player.score,
+      correctAnswers: player.correct_answers,
+      isHost: player.is_host,
+      isCurrentPlayer: player.id === currentPlayerId,
+    })),
+  )
+}
+
   function goHome() {
   setCurrentPage('home')
   setCurrentQuestion(0)
@@ -28,6 +135,7 @@ function leaveRoom() {
   setCurrentPage('home')
   setRoomData(null)
   setPlayers([])
+  setCurrentPlayerId(null)
   setGameQuestions([])
   setCurrentQuestion(0)
   setFinalScore(0)
@@ -105,6 +213,8 @@ function leaveRoom() {
     timeLimit: createdRoom.time_limit,
     status: createdRoom.status,
   })
+
+setCurrentPlayerId(createdHost.id)
 
   setPlayers([
     {
@@ -207,6 +317,8 @@ async function joinRoom({ playerName, roomCode }) {
     status: foundRoom.status,
   })
 
+  setCurrentPlayerId(createdPlayer.id)
+
   setPlayers(
     (roomPlayers || [createdPlayer]).map((player) => ({
       id: player.id,
@@ -289,19 +401,50 @@ function createGameQuestions(category, questionCount) {
   )
 }
 
-function startQuiz() {
+async function startQuiz() {
+  if (!roomData?.id) {
+    alert('Soba nije pronađena.')
+    return
+  }
+
+  const currentPlayer = players.find(
+    (player) => player.id === currentPlayerId,
+  )
+
+  if (!currentPlayer?.isHost) {
+    alert('Samo domaćin može pokrenuti kviz.')
+    return
+  }
+
   const selectedQuestions = createGameQuestions(
     roomData.category,
     roomData.questionCount,
   )
 
-  if (selectedQuestions.length === 0) {
-    alert('Za ovu kategoriju trenutno nema dostupnih pitanja.')
+  
+  setGameQuestions(selectedQuestions)
+  setCurrentQuestion(0)
+  setFinalScore(0)
+
+  const { error } = await supabase
+    .from('rooms')
+    .update({
+      status: 'playing',
+      current_question: 0,
+    })
+    .eq('id', roomData.id)
+
+  if (error) {
+    console.error('Greška pri pokretanju kviza:', error)
+    alert('Kviz nije moguće pokrenuti.')
     return
   }
 
-  setGameQuestions(selectedQuestions)
-  setCurrentQuestion(0)
+  setRoomData((previousRoom) => ({
+    ...previousRoom,
+    status: 'playing',
+  }))
+
   setCurrentPage('quiz')
   window.scrollTo(0, 0)
 }
@@ -465,6 +608,7 @@ function completeAnswer(points) {
       )}
     </main>
   )
+
 
 }
 
