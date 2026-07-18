@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { supabase } from './lib/supabase'
 import './App.css'
 import HomePage from './pages/HomePage'
 import CreateRoomPage from './pages/CreateRoomPage'
@@ -386,5 +387,23 @@ function completeAnswer(points) {
     </main>
   )
 }
+
+useEffect(() => {
+  async function testSupabase() {
+    const { error } = await supabase
+      .from('rooms')
+      .select('*')
+      .limit(1)
+
+    if (error) {
+      console.log('Supabase odgovor:', error.message)
+      return
+    }
+
+    console.log('Supabase je povezan.')
+  }
+
+  testSupabase()
+}, [])
 
 export default App
