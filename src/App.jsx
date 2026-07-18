@@ -1,6 +1,27 @@
+import { useState } from 'react'
 import './App.css'
+import HomePage from './pages/HomePage'
+import CreateRoomPage from './pages/CreateRoomPage'
+import JoinRoomPage from './pages/JoinRoomPage'
 
 function App() {
+  const [currentPage, setCurrentPage] = useState('home')
+
+  function goHome() {
+    setCurrentPage('home')
+    window.scrollTo(0, 0)
+  }
+
+  function openCreateRoom() {
+    setCurrentPage('create')
+    window.scrollTo(0, 0)
+  }
+
+  function openJoinRoom() {
+    setCurrentPage('join')
+    window.scrollTo(0, 0)
+  }
+
   return (
     <main className="app">
       <div className="background-orb orb-one"></div>
@@ -8,110 +29,32 @@ function App() {
       <div className="background-grid"></div>
 
       <nav className="navbar">
-        <a href="#" className="logo">
+        <button className="logo logo-button" onClick={goHome}>
           QUIZ<span>HUB</span>
-        </a>
+        </button>
 
-        <div className="nav-links">
-          <a href="#features">Mogućnosti</a>
-          <a href="#how-it-works">Kako igrati</a>
-        </div>
+        {currentPage === 'home' && (
+          <div className="nav-links">
+            <a href="#features">Mogućnosti</a>
+            <button onClick={openJoinRoom}>Pridruži se</button>
+          </div>
+        )}
       </nav>
 
-      <section className="hero">
-        <div className="hero-badge">
-          <span className="status-dot"></span>
-          Multiplayer kviz platforma
-        </div>
+      {currentPage === 'home' && (
+        <HomePage
+          onCreateRoom={openCreateRoom}
+          onJoinRoom={openJoinRoom}
+        />
+      )}
 
-        <h1>
-          Okupi društvo.
-          <span> Pokreni kviz.</span>
-          Osvoji vrh.
-        </h1>
+      {currentPage === 'create' && (
+        <CreateRoomPage onBack={goHome} />
+      )}
 
-        <p className="hero-description">
-          Kreiraj privatnu sobu, podijeli kod sa prijateljima i započnite
-          takmičenje za nekoliko sekundi. Bez instalacije i komplikovane
-          registracije.
-        </p>
-
-        <div className="hero-actions">
-          <button className="primary-button">
-            <span className="button-icon">▶</span>
-            Kreiraj sobu
-          </button>
-
-          <button className="secondary-button">
-            Pridruži se
-            <span className="arrow">→</span>
-          </button>
-        </div>
-
-        <div className="join-box">
-          <div>
-            <span className="join-label">Već imaš kod sobe?</span>
-            <strong>Pridruži se odmah</strong>
-          </div>
-
-          <div className="join-form">
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength="6"
-              placeholder="Unesi kod"
-            />
-            <button>Uđi</button>
-          </div>
-        </div>
-
-        <div className="stats">
-          <div className="stat-item">
-            <strong>12+</strong>
-            <span>Kategorija</span>
-          </div>
-
-          <div className="stat-divider"></div>
-
-          <div className="stat-item">
-            <strong>10</strong>
-            <span>Modova igre</span>
-          </div>
-
-          <div className="stat-divider"></div>
-
-          <div className="stat-item">
-            <strong>∞</strong>
-            <span>Zabave</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="features" id="features">
-        <article className="feature-card featured-card">
-          <div className="feature-icon">⚡</div>
-          <h2>Brz ulazak</h2>
-          <p>
-            Kreiraj sobu i podijeli kod. Igrači se priključuju bez registracije.
-          </p>
-        </article>
-
-        <article className="feature-card">
-          <div className="feature-icon">👥</div>
-          <h2>Pravi multiplayer</h2>
-          <p>
-            Igrajte zajedno uživo preko mobitela, računara ili velikog ekrana.
-          </p>
-        </article>
-
-        <article className="feature-card">
-          <div className="feature-icon">🏆</div>
-          <h2>Više modova</h2>
-          <p>
-            Classic, eliminacija, timska borba, time attack i još mnogo toga.
-          </p>
-        </article>
-      </section>
+      {currentPage === 'join' && (
+        <JoinRoomPage onBack={goHome} />
+      )}
     </main>
   )
 }
