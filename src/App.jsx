@@ -51,24 +51,28 @@ function App() {
         id: 1,
         name: settings.hostName,
         score: 0,
+        correctAnswers: 0,
         isCurrentPlayer: true,
       },
       {
         id: 2,
         name: 'Amar',
         score: 0,
+        correctAnswers: 0,
         isCurrentPlayer: false,
       },
       {
         id: 3,
         name: 'Lejla',
         score: 0,
+        correctAnswers: 0,
         isCurrentPlayer: false,
       },
       {
         id: 4,
         name: 'Adnan',
         score: 0,
+        correctAnswers: 0,
         isCurrentPlayer: false,
       },
     ])
@@ -166,23 +170,31 @@ function completeAnswer(points) {
   currentQuestion === gameQuestions.length - 1
 
   const updatedPlayers = players.map((player) => {
-    if (player.isCurrentPlayer) {
-      return {
-        ...player,
-        score: player.score + points,
-      }
-    }
-
-    const botPoints =
-      Math.random() > 0.25
-        ? Math.floor(500 + Math.random() * 500)
-        : 0
+  if (player.isCurrentPlayer) {
+    const isCorrect = points > 0
 
     return {
       ...player,
-      score: player.score + botPoints,
+      score: player.score + points,
+      correctAnswers:
+        player.correctAnswers + (isCorrect ? 1 : 0),
     }
-  })
+  }
+
+  const botAnsweredCorrectly = Math.random() > 0.25
+
+  const botPoints = botAnsweredCorrectly
+    ? Math.floor(500 + Math.random() * 500)
+    : 0
+
+  return {
+    ...player,
+    score: player.score + botPoints,
+    correctAnswers:
+      player.correctAnswers +
+      (botAnsweredCorrectly ? 1 : 0),
+  }
+})
 
   setPlayers(updatedPlayers)
 
@@ -210,12 +222,13 @@ function completeAnswer(points) {
   roomData.questionCount,
 )
 
-  setPlayers((currentPlayers) =>
-    currentPlayers.map((player) => ({
-      ...player,
-      score: 0,
-    })),
-  )
+ setPlayers((currentPlayers) =>
+  currentPlayers.map((player) => ({
+    ...player,
+    score: 0,
+    correctAnswers: 0,
+  })),
+)
 
   setGameQuestions(selectedQuestions)
   setCurrentQuestion(0)

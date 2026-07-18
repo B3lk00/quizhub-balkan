@@ -33,6 +33,7 @@ function LeaderboardPage({
         <div className="leaderboard-table-header">
           <span>Pozicija</span>
           <span>Igrač</span>
+          <span>Tačno</span>
           <span>Bodovi</span>
         </div>
 
@@ -65,6 +66,11 @@ function LeaderboardPage({
                   </span>
                 </div>
               </div>
+
+              <div className="leaderboard-correct">
+              <strong>{player.correctAnswers}</strong>
+             <span>/{totalQuestions}</span>
+            </div>
 
               <strong className="leaderboard-score">
                 {player.score}

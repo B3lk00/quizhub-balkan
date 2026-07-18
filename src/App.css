@@ -1333,7 +1333,7 @@
 .leaderboard-table-header {
   padding: 0 20px 14px;
   display: grid;
-  grid-template-columns: 110px 1fr 130px;
+  grid-template-columns: 110px 1fr 100px 130px;
   color: #667187;
   font-size: 11px;
   font-weight: 900;
@@ -1355,7 +1355,7 @@
   min-height: 78px;
   padding: 12px 20px;
   display: grid;
-  grid-template-columns: 110px 1fr 130px;
+  grid-template-columns: 110px 1fr 100px 130px;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 17px;
@@ -1457,9 +1457,10 @@
   }
 
   .leaderboard-player {
-    grid-template-columns: 48px 1fr auto;
-    padding: 12px;
-  }
+  grid-template-columns: 42px 1fr auto auto;
+  gap: 8px;
+  padding: 12px;
+}
 
   .leaderboard-position {
     font-size: 15px;
@@ -1509,4 +1510,26 @@
   .leaderboard-actions {
     flex-direction: column;
   }
+  
+  .leaderboard-correct {
+  font-size: 14px;
+}
+
+.leaderboard-correct span {
+  display: none;
+}
+}
+
+.leaderboard-correct {
+  text-align: center;
+  font-size: 17px;
+}
+
+.leaderboard-correct strong {
+  color: #22c55e;
+}
+
+.leaderboard-correct span {
+  color: #69758b;
+  font-size: 13px;
 }
