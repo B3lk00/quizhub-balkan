@@ -28,17 +28,27 @@ const questions = [
   },
 ]
 
-function QuizPage({ onFinish, timeLimit = 20 }) {
+function QuizPage({
+  currentQuestion,
+  score,
+  timeLimit = 20,
+  onAnswerComplete,
+}) {
   const totalTime = Number(timeLimit)
 
-  const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
-  const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(totalTime)
   const [isAnswered, setIsAnswered] = useState(false)
   const [awardedPoints, setAwardedPoints] = useState(0)
 
   const question = questions[currentQuestion]
+
+  useEffect(() => {
+    setSelectedAnswer(null)
+    setTimeLeft(totalTime)
+    setIsAnswered(false)
+    setAwardedPoints(0)
+  }, [currentQuestion, totalTime])
 
   useEffect(() => {
     if (isAnswered) {
@@ -71,25 +81,13 @@ function QuizPage({ onFinish, timeLimit = 20 }) {
       const points = 500 + speedBonus
 
       setAwardedPoints(points)
-      setScore((currentScore) => currentScore + points)
     } else {
       setAwardedPoints(0)
     }
   }
 
-  function handleNextQuestion() {
-    const isLastQuestion = currentQuestion === questions.length - 1
-
-    if (isLastQuestion) {
-      onFinish(score)
-      return
-    }
-
-    setCurrentQuestion((questionIndex) => questionIndex + 1)
-    setSelectedAnswer(null)
-    setIsAnswered(false)
-    setAwardedPoints(0)
-    setTimeLeft(totalTime)
+  function showLeaderboard() {
+    onAnswerComplete(awardedPoints)
   }
 
   function getAnswerClass(answerIndex) {
@@ -211,17 +209,21 @@ function QuizPage({ onFinish, timeLimit = 20 }) {
             </h3>
           </div>
 
-          <button className="next-question-button" onClick={handleNextQuestion}>
-            {currentQuestion === questions.length - 1
-              ? 'Pogledaj rezultate'
-              : 'Sljedeće pitanje'}
+         <button
+  className="next-question-button"
+  onClick={showLeaderboard}
+>
+  {currentQuestion === questions.length - 1
+    ? 'Završi kviz'
+    : 'Sljedeće pitanje'}
 
-            <span>→</span>
-          </button>
+  <span>→</span>
+</button>
         </div>
       )}
     </section>
   )
 }
 
+export { questions }
 export default QuizPage

@@ -4,17 +4,22 @@ import HomePage from './pages/HomePage'
 import CreateRoomPage from './pages/CreateRoomPage'
 import JoinRoomPage from './pages/JoinRoomPage'
 import LobbyPage from './pages/LobbyPage'
-import QuizPage from './pages/QuizPage'
+import QuizPage, { questions } from './pages/QuizPage'
+import LeaderboardPage from './pages/LeaderboardPage'
 import ResultsPage from './pages/ResultsPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const [roomData, setRoomData] = useState(null)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [players, setPlayers] = useState([])
   const [finalScore, setFinalScore] = useState(0)
 
   function goHome() {
     setCurrentPage('home')
     setRoomData(null)
+    setCurrentQuestion(0)
+    setPlayers([])
     setFinalScore(0)
     window.scrollTo(0, 0)
   }
@@ -40,26 +45,103 @@ function App() {
       players: [settings.hostName],
     })
 
+    setPlayers([
+      {
+        id: 1,
+        name: settings.hostName,
+        score: 0,
+        isCurrentPlayer: true,
+      },
+      {
+        id: 2,
+        name: 'Amar',
+        score: 0,
+        isCurrentPlayer: false,
+      },
+      {
+        id: 3,
+        name: 'Lejla',
+        score: 0,
+        isCurrentPlayer: false,
+      },
+      {
+        id: 4,
+        name: 'Adnan',
+        score: 0,
+        isCurrentPlayer: false,
+      },
+    ])
+
+    setCurrentQuestion(0)
     setCurrentPage('lobby')
     window.scrollTo(0, 0)
   }
 
   function startQuiz() {
+    setCurrentQuestion(0)
     setCurrentPage('quiz')
     window.scrollTo(0, 0)
   }
 
-  function finishQuiz(score) {
-    setFinalScore(score)
-    setCurrentPage('results')
-    window.scrollTo(0, 0)
+function completeAnswer(points) {
+  const isLastQuestion = currentQuestion === questions.length - 1
+
+  const updatedPlayers = players.map((player) => {
+    if (player.isCurrentPlayer) {
+      return {
+        ...player,
+        score: player.score + points,
+      }
+    }
+
+    const botPoints =
+      Math.random() > 0.25
+        ? Math.floor(500 + Math.random() * 500)
+        : 0
+
+    return {
+      ...player,
+      score: player.score + botPoints,
+    }
+  })
+
+  setPlayers(updatedPlayers)
+
+  if (isLastQuestion) {
+    const currentPlayer = updatedPlayers.find(
+      (player) => player.isCurrentPlayer,
+    )
+
+    setFinalScore(currentPlayer?.score || 0)
+    setCurrentPage('leaderboard')
+  } else {
+    setCurrentQuestion(
+      (questionIndex) => questionIndex + 1,
+    )
+
+    setCurrentPage('quiz')
   }
 
+  window.scrollTo(0, 0)
+}
+
   function restartQuiz() {
+    setPlayers((currentPlayers) =>
+      currentPlayers.map((player) => ({
+        ...player,
+        score: 0,
+      })),
+    )
+
+    setCurrentQuestion(0)
     setFinalScore(0)
     setCurrentPage('quiz')
     window.scrollTo(0, 0)
   }
+
+  const currentPlayer = players.find(
+    (player) => player.isCurrentPlayer,
+  )
 
   return (
     <main className="app">
@@ -102,6 +184,7 @@ function App() {
         <LobbyPage
           roomData={{
             ...roomData,
+            players: players.map((player) => player.name),
             onStart: startQuiz,
           }}
           onBack={goHome}
@@ -109,9 +192,22 @@ function App() {
       )}
 
       {currentPage === 'quiz' && roomData && (
-  <QuizPage
-    onFinish={finishQuiz}
-    timeLimit={roomData.timeLimit}
+        <QuizPage
+          currentQuestion={currentQuestion}
+          score={currentPlayer?.score || 0}
+          timeLimit={roomData.timeLimit}
+          onAnswerComplete={completeAnswer}
+        />
+      )}
+
+{currentPage === 'leaderboard' && (
+  <LeaderboardPage
+    players={players}
+    currentQuestion={currentQuestion}
+    totalQuestions={questions.length}
+    onNext={restartQuiz}
+    onHome={goHome}
+    isLastQuestion={true}
   />
 )}
 
