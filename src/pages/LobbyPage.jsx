@@ -70,10 +70,13 @@ function LobbyPage({ roomData, onBack }) {
             <strong>{roomData.timeLimit} sekundi</strong>
           </div>
 
-          <button className="submit-button lobby-start-button">
-            Pokreni kviz
-            <span>▶</span>
-          </button>
+         <button
+          className="submit-button lobby-start-button"
+          onClick={roomData.onStart}
+        >
+          Pokreni kviz
+           <span>▶</span>
+           </button>
 
           <p className="lobby-note">
             Za početak je dovoljan jedan igrač. Kasnije ćemo dodati pravo

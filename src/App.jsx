@@ -4,14 +4,18 @@ import HomePage from './pages/HomePage'
 import CreateRoomPage from './pages/CreateRoomPage'
 import JoinRoomPage from './pages/JoinRoomPage'
 import LobbyPage from './pages/LobbyPage'
+import QuizPage from './pages/QuizPage'
+import ResultsPage from './pages/ResultsPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
   const [roomData, setRoomData] = useState(null)
+  const [finalScore, setFinalScore] = useState(0)
 
   function goHome() {
     setCurrentPage('home')
     setRoomData(null)
+    setFinalScore(0)
     window.scrollTo(0, 0)
   }
 
@@ -37,6 +41,23 @@ function App() {
     })
 
     setCurrentPage('lobby')
+    window.scrollTo(0, 0)
+  }
+
+  function startQuiz() {
+    setCurrentPage('quiz')
+    window.scrollTo(0, 0)
+  }
+
+  function finishQuiz(score) {
+    setFinalScore(score)
+    setCurrentPage('results')
+    window.scrollTo(0, 0)
+  }
+
+  function restartQuiz() {
+    setFinalScore(0)
+    setCurrentPage('quiz')
     window.scrollTo(0, 0)
   }
 
@@ -79,8 +100,23 @@ function App() {
 
       {currentPage === 'lobby' && roomData && (
         <LobbyPage
-          roomData={roomData}
+          roomData={{
+            ...roomData,
+            onStart: startQuiz,
+          }}
           onBack={goHome}
+        />
+      )}
+
+      {currentPage === 'quiz' && (
+        <QuizPage onFinish={finishQuiz} />
+      )}
+
+      {currentPage === 'results' && (
+        <ResultsPage
+          score={finalScore}
+          onRestart={restartQuiz}
+          onHome={goHome}
         />
       )}
     </main>
