@@ -108,9 +108,12 @@ function App() {
         />
       )}
 
-      {currentPage === 'quiz' && (
-        <QuizPage onFinish={finishQuiz} />
-      )}
+      {currentPage === 'quiz' && roomData && (
+  <QuizPage
+    onFinish={finishQuiz}
+    timeLimit={roomData.timeLimit}
+  />
+)}
 
       {currentPage === 'results' && (
         <ResultsPage
