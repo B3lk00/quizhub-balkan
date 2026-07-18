@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const questions = [
+export const allQuestions = [
   {
     question: 'Koji je glavni grad Bosne i Hercegovine?',
     answers: ['Mostar', 'Sarajevo', 'Tuzla', 'Zenica'],
@@ -29,6 +29,7 @@ const questions = [
 ]
 
 function QuizPage({
+  questions,
   currentQuestion,
   score,
   timeLimit = 20,
@@ -225,5 +226,5 @@ function QuizPage({
   )
 }
 
-export { questions }
+
 export default QuizPage

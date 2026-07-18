@@ -4,7 +4,7 @@ import HomePage from './pages/HomePage'
 import CreateRoomPage from './pages/CreateRoomPage'
 import JoinRoomPage from './pages/JoinRoomPage'
 import LobbyPage from './pages/LobbyPage'
-import QuizPage, { questions } from './pages/QuizPage'
+import QuizPage, { allQuestions } from './pages/QuizPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResultsPage from './pages/ResultsPage'
 
@@ -14,6 +14,7 @@ function App() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [players, setPlayers] = useState([])
   const [finalScore, setFinalScore] = useState(0)
+  const [gameQuestions, setGameQuestions] = useState([])
 
   function goHome() {
     setCurrentPage('home')
@@ -77,14 +78,27 @@ function App() {
     window.scrollTo(0, 0)
   }
 
-  function startQuiz() {
-    setCurrentQuestion(0)
-    setCurrentPage('quiz')
-    window.scrollTo(0, 0)
-  }
+  function shuffleQuestions(questionList) {
+  return [...questionList].sort(() => Math.random() - 0.5)
+}
+
+ function startQuiz() {
+  const requestedQuestionCount = Number(roomData.questionCount)
+
+  const selectedQuestions = shuffleQuestions(allQuestions).slice(
+    0,
+    requestedQuestionCount,
+  )
+
+  setGameQuestions(selectedQuestions)
+  setCurrentQuestion(0)
+  setCurrentPage('quiz')
+  window.scrollTo(0, 0)
+}
 
 function completeAnswer(points) {
-  const isLastQuestion = currentQuestion === questions.length - 1
+  const isLastQuestion =
+  currentQuestion === gameQuestions.length - 1
 
   const updatedPlayers = players.map((player) => {
     if (player.isCurrentPlayer) {
@@ -126,18 +140,26 @@ function completeAnswer(points) {
 }
 
   function restartQuiz() {
-    setPlayers((currentPlayers) =>
-      currentPlayers.map((player) => ({
-        ...player,
-        score: 0,
-      })),
-    )
+  const requestedQuestionCount = Number(roomData.questionCount)
 
-    setCurrentQuestion(0)
-    setFinalScore(0)
-    setCurrentPage('quiz')
-    window.scrollTo(0, 0)
-  }
+  const selectedQuestions = shuffleQuestions(allQuestions).slice(
+    0,
+    requestedQuestionCount,
+  )
+
+  setPlayers((currentPlayers) =>
+    currentPlayers.map((player) => ({
+      ...player,
+      score: 0,
+    })),
+  )
+
+  setGameQuestions(selectedQuestions)
+  setCurrentQuestion(0)
+  setFinalScore(0)
+  setCurrentPage('quiz')
+  window.scrollTo(0, 0)
+}
 
   const currentPlayer = players.find(
     (player) => player.isCurrentPlayer,
@@ -191,20 +213,21 @@ function completeAnswer(points) {
         />
       )}
 
-      {currentPage === 'quiz' && roomData && (
-        <QuizPage
-          currentQuestion={currentQuestion}
-          score={currentPlayer?.score || 0}
-          timeLimit={roomData.timeLimit}
-          onAnswerComplete={completeAnswer}
-        />
-      )}
+      {currentPage === 'quiz' && roomData && gameQuestions.length > 0 && (
+  <QuizPage
+    questions={gameQuestions}
+    currentQuestion={currentQuestion}
+    score={currentPlayer?.score || 0}
+    timeLimit={roomData.timeLimit}
+    onAnswerComplete={completeAnswer}
+  />
+)}
 
 {currentPage === 'leaderboard' && (
   <LeaderboardPage
     players={players}
     currentQuestion={currentQuestion}
-    totalQuestions={questions.length}
+    totalQuestions={gameQuestions.length}
     onNext={restartQuiz}
     onHome={goHome}
     isLastQuestion={true}
