@@ -4,6 +4,8 @@ import { sportQuestions } from './sport'
 import { automobiliQuestions } from './automobili'
 import { filmoviSerijeQuestions } from './filmovi'
 import { muzikaQuestions } from './muzika'
+import { historijaQuestions } from './historija'
+import { gamingQuestions } from './gaming'
 
 export const allQuestions = [
   ...opceQuestions,
@@ -12,6 +14,8 @@ export const allQuestions = [
   ...automobiliQuestions,
   ...filmoviSerijeQuestions,
   ...muzikaQuestions,
+  ...historijaQuestions,
+  ...gamingQuestions,
 ]
 
 export {
@@ -21,4 +25,6 @@ export {
   automobiliQuestions,
   filmoviSerijeQuestions,
   muzikaQuestions,
+  historijaQuestions,
+  gamingQuestions,
 }
