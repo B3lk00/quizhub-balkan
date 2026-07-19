@@ -4,30 +4,59 @@ function LeaderboardPage({
   totalQuestions,
   onNext,
   onHome,
-  isLastQuestion,
+  finishedPlayersCount,
+  remainingPlayersCount,
+  everyoneFinished,
+  currentPlayerId,
+  isHost,
 }) {
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score)
-
   return (
     <section className="leaderboard-page">
       <div className="leaderboard-heading">
         <div>
-        <span className="eyebrow">Kviz završen</span>
+          <span className="eyebrow">
+            {everyoneFinished
+              ? 'Kviz završen'
+              : 'Rezultati uživo'}
+          </span>
 
-     <h1>Konačni poredak</h1>
+          <h1>
+            {everyoneFinished
+              ? 'Konačni poredak'
+              : 'Čekanje ostalih igrača'}
+          </h1>
 
-    <p>
-     Završena su sva pitanja. Pogledaj ko je osvojio prvo mjesto.
-    </p>
+          <p>
+            {everyoneFinished
+              ? 'Svi igrači su završili kviz. Pogledaj konačni poredak.'
+              : remainingPlayersCount === 1
+                ? 'Još jedan igrač završava kviz. Rezultati se ažuriraju uživo.'
+                : `Još ${remainingPlayersCount} igrača završavaju kviz. Rezultati se ažuriraju uživo.`}
+          </p>
         </div>
 
         <div className="round-badge">
-          <span>Pitanja</span>
+          <span>Završili</span>
+
           <strong>
-            {currentQuestion + 1}/{totalQuestions}
+            {finishedPlayersCount}/{players.length}
           </strong>
         </div>
       </div>
+
+      {!everyoneFinished && (
+        <div className="leaderboard-waiting">
+          <span className="waiting-dot"></span>
+
+          <div>
+            <strong>Rezultati uživo</strong>
+
+            <p>
+              Možeš pratiti bodove igrača kako završavaju kviz.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="leaderboard-card">
         <div className="leaderboard-table-header">
@@ -38,55 +67,120 @@ function LeaderboardPage({
         </div>
 
         <div className="leaderboard-list">
-          {sortedPlayers.map((player, index) => (
-            <div
-              className={`leaderboard-player ${
-                index === 0 ? 'leaderboard-winner' : ''
-              }`}
-              key={player.id}
-            >
-              <div className="leaderboard-position">
-                {index === 0 ? '👑' : `#${index + 1}`}
-              </div>
+          {players.map((player, index) => {
+            const isCurrentPlayer =
+              player.id === currentPlayerId ||
+              player.isCurrentPlayer
 
-              <div className="leaderboard-user">
-                <div className="leaderboard-avatar">
-                  {player.name.charAt(0).toUpperCase()}
+            const isWinner =
+              everyoneFinished && index === 0
+
+            return (
+              <div
+                className={[
+                  'leaderboard-player',
+                  isWinner ? 'leaderboard-winner' : '',
+                  isCurrentPlayer
+                    ? 'leaderboard-current-player'
+                    : '',
+                  !player.isFinished
+                    ? 'leaderboard-player-playing'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                key={player.id}
+              >
+                <div className="leaderboard-position">
+                  {isWinner ? '👑' : `#${index + 1}`}
                 </div>
 
-                <div>
-                  <strong>{player.name}</strong>
+                <div className="leaderboard-user">
+                  <div className="leaderboard-avatar">
+                    {player.name.charAt(0).toUpperCase()}
+                  </div>
 
-                  <span>
-                    {player.isCurrentPlayer
-                      ? 'Ti'
-                      : index === 0
-                        ? 'Trenutno vodi'
-                        : 'Igrač'}
-                  </span>
+                  <div>
+                    <strong>
+                      {player.name}
+
+                      {isCurrentPlayer && (
+                        <span className="you-badge">Ti</span>
+                      )}
+                    </strong>
+
+                    <span
+                      className={
+                        player.isFinished
+                          ? 'player-status player-finished'
+                          : 'player-status player-playing'
+                      }
+                    >
+                      <span className="status-dot"></span>
+
+                      {player.isFinished
+                        ? isWinner
+                          ? 'Pobjednik'
+                          : 'Završio kviz'
+                        : 'Još igra...'}
+                    </span>
+                  </div>
                 </div>
+
+                <div className="leaderboard-correct">
+                  <strong>
+                    {player.correctAnswers || 0}
+                  </strong>
+
+                  <span>/{totalQuestions}</span>
+                </div>
+
+                <strong className="leaderboard-score">
+                  {player.isFinished
+                    ? player.score || 0
+                    : '—'}
+                </strong>
               </div>
-
-              <div className="leaderboard-correct">
-              <strong>{player.correctAnswers}</strong>
-             <span>/{totalQuestions}</span>
-            </div>
-
-              <strong className="leaderboard-score">
-                {player.score}
-              </strong>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
-     <div className="leaderboard-actions">
-  <button className="leaderboard-next-button" onClick={onNext}>
-    Igraj ponovo
-    <span>↻</span>
-  </button>
+<div className="leaderboard-actions">
+  {everyoneFinished && isHost && (
+    <button
+      className="leaderboard-next-button"
+      onClick={onNext}
+    >
+      Igraj ponovo
+      <span>↻</span>
+    </button>
+  )}
 
-  <button className="leaderboard-home-button" onClick={onHome}>
+  {everyoneFinished && !isHost && (
+    <button
+      className="leaderboard-next-button"
+      disabled
+    >
+      Čekanje domaćina...
+      <span>⌛</span>
+    </button>
+  )}
+
+  {!everyoneFinished && (
+    <button
+      className="leaderboard-next-button"
+      disabled
+    >
+      Čekanje ostalih...
+      <span>⌛</span>
+    </button>
+  )}
+
+  <button
+    className="leaderboard-home-button"
+    onClick={onHome}
+  >
     Vrati se na početnu
   </button>
 </div>

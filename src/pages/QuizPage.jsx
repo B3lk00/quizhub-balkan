@@ -2,18 +2,21 @@ import { useEffect, useState } from 'react'
 
 export const allQuestions = [
   {
+    id: 'opce-1',
     category: 'opce',
     question: 'Koliko kontinenata postoji?',
     answers: ['5', '6', '7', '8'],
     correctAnswer: 2,
   },
   {
+    id: 'opce-2',
     category: 'opce',
     question: 'Koliko dana ima prijestupna godina?',
     answers: ['364', '365', '366', '367'],
     correctAnswer: 2,
   },
   {
+    id: 'opce-3',
     category: 'opce',
     question: 'Koji je najveći sisar na svijetu?',
     answers: ['Slon', 'Plavi kit', 'Žirafa', 'Nosorog'],
@@ -21,18 +24,21 @@ export const allQuestions = [
   },
 
   {
+    id:'geografija-1',
     category: 'geografija',
     question: 'Koji je glavni grad Bosne i Hercegovine?',
     answers: ['Mostar', 'Sarajevo', 'Tuzla', 'Zenica'],
     correctAnswer: 1,
   },
   {
+    id:'geografija-2',
     category: 'geografija',
     question: 'Koja je najveća država na svijetu?',
     answers: ['Kanada', 'Kina', 'Rusija', 'SAD'],
     correctAnswer: 2,
   },
   {
+    id:'geografija-3',
     category: 'geografija',
     question: 'Koja rijeka protiče kroz London?',
     answers: ['Dunav', 'Temza', 'Sena', 'Rajna'],
@@ -40,18 +46,21 @@ export const allQuestions = [
   },
 
   {
+    id:'sport-1',
     category: 'sport',
     question: 'Koliko igrača jedan fudbalski tim ima na terenu?',
     answers: ['9', '10', '11', '12'],
     correctAnswer: 2,
   },
   {
+    id:'sport-2',
     category: 'sport',
     question: 'Koliko traje regularna fudbalska utakmica?',
     answers: ['60 minuta', '80 minuta', '90 minuta', '100 minuta'],
     correctAnswer: 2,
   },
   {
+    id:'sport-3',
     category: 'sport',
     question: 'U kojem sportu se koristi reket i loptica preko mreže?',
     answers: ['Golf', 'Tenis', 'Rukomet', 'Vaterpolo'],
@@ -59,12 +68,14 @@ export const allQuestions = [
   },
 
   {
+    id:'automobili-1',
     category: 'automobili',
     question: 'Koja marka proizvodi model A5?',
     answers: ['BMW', 'Mercedes', 'Audi', 'Volkswagen'],
     correctAnswer: 2,
   },
   {
+    id:'automobili-2',
     category: 'automobili',
     question: 'Šta znači oznaka TDI?',
     answers: [
@@ -76,6 +87,7 @@ export const allQuestions = [
     correctAnswer: 1,
   },
   {
+    id:'automobili-3',
     category: 'automobili',
     question: 'Koji dio automobila puni akumulator tokom vožnje?',
     answers: ['Starter', 'Alternator', 'Hladnjak', 'Turbina'],
@@ -83,18 +95,21 @@ export const allQuestions = [
   },
 
   {
+    id:'nauka-1',
     category: 'nauka',
     question: 'Koja planeta je najbliža Suncu?',
     answers: ['Venera', 'Mars', 'Merkur', 'Jupiter'],
     correctAnswer: 2,
   },
   {
+    id:'nauka-2',
     category: 'nauka',
     question: 'Koja je hemijska oznaka za vodu?',
     answers: ['CO2', 'H2O', 'O2', 'NaCl'],
     correctAnswer: 1,
   },
   {
+    id:'nauka-3',
     category: 'nauka',
     question: 'Koji organ pumpa krv kroz ljudsko tijelo?',
     answers: ['Pluća', 'Jetra', 'Srce', 'Bubrezi'],
@@ -115,6 +130,7 @@ function QuizPage({
   const [timeLeft, setTimeLeft] = useState(totalTime)
   const [isAnswered, setIsAnswered] = useState(false)
   const [awardedPoints, setAwardedPoints] = useState(0)
+  const [answerSubmitted, setAnswerSubmitted] = useState(false)
 
   const question = questions[currentQuestion]
 
@@ -123,6 +139,7 @@ function QuizPage({
     setTimeLeft(totalTime)
     setIsAnswered(false)
     setAwardedPoints(0)
+    setAnswerSubmitted(false)
   }, [currentQuestion, totalTime])
 
   useEffect(() => {
@@ -161,9 +178,15 @@ function QuizPage({
     }
   }
 
-  function showLeaderboard() {
-    onAnswerComplete(awardedPoints)
+async function showLeaderboard() {
+  if (answerSubmitted) {
+    return
   }
+
+  setAnswerSubmitted(true)
+
+  await onAnswerComplete(awardedPoints)
+}
 
   function getAnswerClass(answerIndex) {
     if (!isAnswered) {
@@ -284,15 +307,18 @@ function QuizPage({
             </h3>
           </div>
 
-         <button
+  <button
   className="next-question-button"
   onClick={showLeaderboard}
+  disabled={answerSubmitted}
 >
-  {currentQuestion === questions.length - 1
-    ? 'Završi kviz'
-    : 'Sljedeće pitanje'}
+  {answerSubmitted
+    ? 'Učitavanje...'
+    : currentQuestion === questions.length - 1
+      ? 'Završi kviz'
+      : 'Sljedeće pitanje'}
 
-  <span>→</span>
+  {!answerSubmitted && <span>→</span>}
 </button>
         </div>
       )}

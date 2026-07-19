@@ -68,23 +68,25 @@ useEffect(() => {
           currentQuestion: updatedRoom.current_question,
         }))
 
-        if (updatedRoom.status === 'playing') {
-          const selectedQuestions = createGameQuestions(
-            updatedRoom.category,
-            updatedRoom.question_count,
-          )
+if (
+  updatedRoom.status === 'playing' &&
+  currentPage !== 'quiz'
+) {
+  const selectedQuestions = getQuestionsByIds(
+    updatedRoom.question_ids,
+  )
 
-          setGameQuestions(selectedQuestions)
-          setCurrentQuestion(updatedRoom.current_question || 0)
-          setFinalScore(0)
-          setCurrentPage('quiz')
-          window.scrollTo(0, 0)
-        }
+  if (selectedQuestions.length === 0) {
+    console.error('Pitanja nisu pronađena.')
+    return
+  }
 
-        if (updatedRoom.status === 'finished') {
-          setCurrentPage('leaderboard')
-          window.scrollTo(0, 0)
-        }
+  setGameQuestions(selectedQuestions)
+  setCurrentQuestion(0)
+  setFinalScore(0)
+  setCurrentPage('quiz')
+  window.scrollTo(0, 0)
+}
       },
     )
     .subscribe((status, error) => {
@@ -98,7 +100,7 @@ useEffect(() => {
   return () => {
     supabase.removeChannel(roomChannel)
   }
-}, [roomData?.id])
+}, [roomData?.id, currentPage])
 
 async function loadRoomPlayers(roomId, currentPlayerId) {
   const { data, error } = await supabase
@@ -112,16 +114,18 @@ async function loadRoomPlayers(roomId, currentPlayerId) {
     return
   }
 
-  setPlayers(
-    (data || []).map((player) => ({
-      id: player.id,
-      name: player.name,
-      score: player.score,
-      correctAnswers: player.correct_answers,
-      isHost: player.is_host,
-      isCurrentPlayer: player.id === currentPlayerId,
-    })),
-  )
+setPlayers(
+  (data || []).map((player) => ({
+    id: player.id,
+    name: player.name,
+    score: player.score || 0,
+    correctAnswers: player.correct_answers || 0,
+    isHost: player.is_host,
+    isFinished: player.finished === true,
+    finishedAt: player.finished_at,
+    isCurrentPlayer: player.id === currentPlayerId,
+  })),
+)
 }
 
   function goHome() {
@@ -186,6 +190,7 @@ function leaveRoom() {
         score: 0,
         correct_answers: 0,
         is_host: true,
+        finished: false,
       })
       .select()
       .single()
@@ -212,6 +217,7 @@ function leaveRoom() {
     questionCount: createdRoom.question_count,
     timeLimit: createdRoom.time_limit,
     status: createdRoom.status,
+    questionIds: createdRoom.question_ids || [],
   })
 
 setCurrentPlayerId(createdHost.id)
@@ -224,6 +230,7 @@ setCurrentPlayerId(createdHost.id)
       correctAnswers: createdHost.correct_answers,
       isCurrentPlayer: true,
       isHost: createdHost.is_host,
+      isFinished: false,
     },
   ])
 
@@ -235,104 +242,124 @@ async function joinRoom({ playerName, roomCode }) {
   const cleanName = playerName.trim()
   const cleanCode = roomCode.trim()
 
-  const { data: foundRoom, error: roomError } =
-    await supabase
-      .from('rooms')
-      .select('*')
-      .eq('code', cleanCode)
-      .single()
-
-  if (roomError || !foundRoom) {
-    console.error('Greška pri pronalasku sobe:', roomError)
-
-    alert('Soba sa tim kodom ne postoji.')
+  if (!cleanName || !cleanCode) {
+    alert('Unesi ime i kod sobe.')
     return
   }
 
-  if (foundRoom.status !== 'lobby') {
-    alert('Ova partija je već počela ili je završena.')
-    return
-  }
+  try {
+    const { data: foundRoom, error: roomError } =
+      await supabase
+        .from('rooms')
+        .select('*')
+        .eq('code', cleanCode)
+        .maybeSingle()
 
-  const { data: existingPlayer } = await supabase
-    .from('players')
-    .select('id')
-    .eq('room_id', foundRoom.id)
-    .ilike('name', cleanName)
-    .maybeSingle()
-
-  if (existingPlayer) {
-    alert('Igrač sa tim imenom je već u ovoj sobi.')
-    return
-  }
-
-  const { data: createdPlayer, error: playerError } =
-    await supabase
-      .from('players')
-      .insert({
-        room_id: foundRoom.id,
-        name: cleanName,
-        score: 0,
-        correct_answers: 0,
-        is_host: false,
-      })
-      .select()
-      .single()
-
-  if (playerError) {
-    console.error(
-      'Greška pri pridruživanju sobi:',
-      playerError,
-    )
-
-    if (playerError.code === '23505') {
-      alert('Igrač sa tim imenom je već u sobi.')
+    if (roomError) {
+      console.error('Greška pri traženju sobe:', roomError)
+      alert('Došlo je do greške pri traženju sobe.')
       return
     }
 
-    alert('Nije moguće pridružiti se sobi.')
-    return
-  }
+    if (!foundRoom) {
+      alert('Soba sa tim kodom ne postoji.')
+      return
+    }
 
-  const { data: roomPlayers, error: playersError } =
-    await supabase
-      .from('players')
-      .select('*')
-      .eq('room_id', foundRoom.id)
-      .order('created_at', { ascending: true })
+    if (foundRoom.status !== 'lobby') {
+      alert('Ova partija je već počela ili je završena.')
+      return
+    }
 
-  if (playersError) {
-    console.error(
-      'Greška pri učitavanju igrača:',
-      playersError,
+    const { data: existingPlayer, error: existingError } =
+      await supabase
+        .from('players')
+        .select('id')
+        .eq('room_id', foundRoom.id)
+        .ilike('name', cleanName)
+        .maybeSingle()
+
+    if (existingError) {
+      console.error(
+        'Greška pri provjeri postojećeg igrača:',
+        existingError,
+      )
+
+      alert('Nije moguće provjeriti igrača.')
+      return
+    }
+
+    if (existingPlayer) {
+      alert('Igrač sa tim imenom je već u lobbyju.')
+      return
+    }
+
+    const { data: createdPlayer, error: playerError } =
+      await supabase
+        .from('players')
+        .insert({
+          room_id: foundRoom.id,
+          name: cleanName,
+          score: 0,
+          correct_answers: 0,
+          is_host: false,
+          finished: false,
+        })
+        .select()
+        .single()
+
+    if (playerError) {
+      console.error(
+        'Greška pri dodavanju igrača:',
+        playerError,
+      )
+
+      alert('Nije moguće pridružiti se sobi.')
+      return
+    }
+
+    console.log('Igrač uspješno kreiran:', createdPlayer)
+
+    setCurrentPlayerId(createdPlayer.id)
+
+    setRoomData({
+      id: foundRoom.id,
+      code: foundRoom.code,
+      category: foundRoom.category,
+      questionCount: foundRoom.question_count,
+      timeLimit: foundRoom.time_limit,
+      status: foundRoom.status,
+      currentQuestion: foundRoom.current_question || 0,
+      questionIds: foundRoom.question_ids || [],
+    })
+
+    setPlayers([
+      {
+        id: createdPlayer.id,
+        name: createdPlayer.name,
+        score: createdPlayer.score || 0,
+        correctAnswers: createdPlayer.correct_answers || 0,
+        isHost: false,
+        isCurrentPlayer: true,
+        isFinished: false,
+      },
+    ])
+
+    setCurrentQuestion(foundRoom.current_question || 0)
+    setCurrentPage('lobby')
+    window.scrollTo(0, 0)
+
+    console.log('Otvaram lobby...')
+
+    // Nakon otvaranja lobbyja učitaj sve ostale igrače.
+    await loadRoomPlayers(
+      foundRoom.id,
+      createdPlayer.id,
     )
+  } catch (error) {
+    console.error('Neočekivana joinRoom greška:', error)
+    alert('Došlo je do neočekivane greške.')
   }
-
-  setRoomData({
-    id: foundRoom.id,
-    code: foundRoom.code,
-    category: foundRoom.category,
-    questionCount: foundRoom.question_count,
-    timeLimit: foundRoom.time_limit,
-    status: foundRoom.status,
-  })
-
-  setCurrentPlayerId(createdPlayer.id)
-
-  setPlayers(
-    (roomPlayers || [createdPlayer]).map((player) => ({
-      id: player.id,
-      name: player.name,
-      score: player.score,
-      correctAnswers: player.correct_answers,
-      isHost: player.is_host,
-      isCurrentPlayer: player.id === createdPlayer.id,
-    })),
-  )
-
-  setCurrentQuestion(foundRoom.current_question || 0)
-  setCurrentPage('lobby')
-  window.scrollTo(0, 0)
 }
 
   function shuffleQuestions(questionList) {
@@ -401,6 +428,20 @@ function createGameQuestions(category, questionCount) {
   )
 }
 
+function getQuestionsByIds(questionIds) {
+  if (!Array.isArray(questionIds)) {
+    return []
+  }
+
+  return questionIds
+    .map((questionId) =>
+      allQuestions.find(
+        (question) => question.id === questionId,
+      ),
+    )
+    .filter(Boolean)
+}
+
 async function startQuiz() {
   if (!roomData?.id) {
     alert('Soba nije pronađena.')
@@ -421,16 +462,21 @@ async function startQuiz() {
     roomData.questionCount,
   )
 
-  
-  setGameQuestions(selectedQuestions)
-  setCurrentQuestion(0)
-  setFinalScore(0)
+  if (selectedQuestions.length === 0) {
+    alert('Nema dostupnih pitanja za ovu kategoriju.')
+    return
+  }
+
+  const questionIds = selectedQuestions.map(
+    (question) => question.id,
+  )
 
   const { error } = await supabase
     .from('rooms')
     .update({
       status: 'playing',
       current_question: 0,
+      question_ids: questionIds,
     })
     .eq('id', roomData.id)
 
@@ -440,83 +486,226 @@ async function startQuiz() {
     return
   }
 
+  setGameQuestions(selectedQuestions)
+  setCurrentQuestion(0)
+  setFinalScore(0)
+
   setRoomData((previousRoom) => ({
     ...previousRoom,
     status: 'playing',
+    currentQuestion: 0,
+    questionIds,
   }))
 
   setCurrentPage('quiz')
   window.scrollTo(0, 0)
 }
 
-function completeAnswer(points) {
+async function completeAnswer(points) {
+  if (!roomData?.id || !currentPlayerId) {
+    return
+  }
+
+  const player = players.find(
+    (currentPlayer) =>
+      currentPlayer.id === currentPlayerId,
+  )
+
+  if (!player) {
+    alert('Trenutni igrač nije pronađen.')
+    return
+  }
+
+  const isCorrect = points > 0
+
+  const newScore =
+    Number(player.score || 0) + Number(points || 0)
+
+  const newCorrectAnswers =
+    Number(player.correctAnswers || 0) +
+    (isCorrect ? 1 : 0)
+
   const isLastQuestion =
-  currentQuestion === gameQuestions.length - 1
+    currentQuestion === gameQuestions.length - 1
 
-  const updatedPlayers = players.map((player) => {
-  if (player.isCurrentPlayer) {
-    const isCorrect = points > 0
-
-    return {
-      ...player,
-      score: player.score + points,
-      correctAnswers:
-        player.correctAnswers + (isCorrect ? 1 : 0),
-    }
+  const playerUpdate = {
+    score: newScore,
+    correct_answers: newCorrectAnswers,
   }
-
-  const botAnsweredCorrectly = Math.random() > 0.25
-
-  const botPoints = botAnsweredCorrectly
-    ? Math.floor(500 + Math.random() * 500)
-    : 0
-
-  return {
-    ...player,
-    score: player.score + botPoints,
-    correctAnswers:
-      player.correctAnswers +
-      (botAnsweredCorrectly ? 1 : 0),
-  }
-})
-
-  setPlayers(updatedPlayers)
 
   if (isLastQuestion) {
-    const currentPlayer = updatedPlayers.find(
-      (player) => player.isCurrentPlayer,
+    playerUpdate.finished = true
+    playerUpdate.finished_at = new Date().toISOString()
+  }
+
+  const { error: playerError } = await supabase
+    .from('players')
+    .update(playerUpdate)
+    .eq('id', currentPlayerId)
+
+  if (playerError) {
+    console.error(
+      'Greška pri čuvanju odgovora:',
+      playerError,
     )
 
-    setFinalScore(currentPlayer?.score || 0)
-    setCurrentPage('leaderboard')
-  } else {
+    alert('Odgovor i bodovi nisu sačuvani.')
+    return
+  }
+
+  setPlayers((currentPlayers) =>
+    currentPlayers.map((currentPlayer) =>
+      currentPlayer.id === currentPlayerId
+        ? {
+            ...currentPlayer,
+            score: newScore,
+            correctAnswers: newCorrectAnswers,
+            isFinished: isLastQuestion,
+            finishedAt: isLastQuestion
+              ? playerUpdate.finished_at
+              : currentPlayer.finishedAt,
+          }
+        : currentPlayer,
+    ),
+  )
+
+  if (!isLastQuestion) {
     setCurrentQuestion(
       (questionIndex) => questionIndex + 1,
     )
 
     setCurrentPage('quiz')
+    window.scrollTo(0, 0)
+    return
   }
 
+  setFinalScore(newScore)
+
+  await loadRoomPlayers(
+    roomData.id,
+    currentPlayerId,
+  )
+
+  setCurrentPage('leaderboard')
   window.scrollTo(0, 0)
+
+  const { data: allPlayers, error: playersError } =
+    await supabase
+      .from('players')
+      .select('finished')
+      .eq('room_id', roomData.id)
+
+  if (playersError) {
+    console.error(
+      'Greška pri provjeri završetka igrača:',
+      playersError,
+    )
+    return
+  }
+
+  const everyoneFinished =
+    allPlayers.length > 0 &&
+    allPlayers.every(
+      (roomPlayer) => roomPlayer.finished === true,
+    )
+
+  if (everyoneFinished) {
+    const { error: roomError } = await supabase
+      .from('rooms')
+      .update({
+        status: 'finished',
+      })
+      .eq('id', roomData.id)
+
+    if (roomError) {
+      console.error(
+        'Greška pri završavanju sobe:',
+        roomError,
+      )
+    }
+  }
 }
 
-  function restartQuiz() {
- const selectedQuestions = createGameQuestions(
-  roomData.category,
-  roomData.questionCount,
-)
+async function restartQuiz() {
+  if (!roomData?.id || !isCurrentPlayerHost) {
+    alert('Samo domaćin može pokrenuti novu rundu.')
+    return
+  }
 
- setPlayers((currentPlayers) =>
-  currentPlayers.map((player) => ({
-    ...player,
-    score: 0,
-    correctAnswers: 0,
-  })),
-)
+  const selectedQuestions = createGameQuestions(
+    roomData.category,
+    roomData.questionCount,
+  )
+
+  if (selectedQuestions.length === 0) {
+    alert('Nema dostupnih pitanja za novu rundu.')
+    return
+  }
+
+  const questionIds = selectedQuestions.map(
+    (question) => question.id,
+  )
+
+  const { error: playersError } = await supabase
+    .from('players')
+    .update({
+      score: 0,
+      correct_answers: 0,
+      finished: false,
+      finished_at: null,
+    })
+    .eq('room_id', roomData.id)
+
+  if (playersError) {
+    console.error(
+      'Greška pri resetovanju igrača:',
+      playersError,
+    )
+
+    alert('Igrači nisu resetovani.')
+    return
+  }
+
+  const { error: roomError } = await supabase
+    .from('rooms')
+    .update({
+      status: 'playing',
+      current_question: 0,
+      question_ids: questionIds,
+    })
+    .eq('id', roomData.id)
+
+  if (roomError) {
+    console.error(
+      'Greška pri pokretanju nove runde:',
+      roomError,
+    )
+
+    alert('Nova runda nije pokrenuta.')
+    return
+  }
+
+  setPlayers((currentPlayers) =>
+    currentPlayers.map((player) => ({
+      ...player,
+      score: 0,
+      correctAnswers: 0,
+      isFinished: false,
+      finishedAt: null,
+    })),
+  )
 
   setGameQuestions(selectedQuestions)
   setCurrentQuestion(0)
   setFinalScore(0)
+
+  setRoomData((previousRoom) => ({
+    ...previousRoom,
+    status: 'playing',
+    currentQuestion: 0,
+    questionIds,
+  }))
+
   setCurrentPage('quiz')
   window.scrollTo(0, 0)
 }
@@ -525,6 +714,44 @@ function completeAnswer(points) {
     (player) => player.isCurrentPlayer,
   )
   const isCurrentPlayerHost = currentPlayer?.isHost === true
+
+  const leaderboardPlayers = [...players].sort((playerA, playerB) => {
+  if (playerA.isFinished && !playerB.isFinished) {
+    return -1
+  }
+
+  if (!playerA.isFinished && playerB.isFinished) {
+    return 1
+  }
+
+  if (playerB.score !== playerA.score) {
+    return playerB.score - playerA.score
+  }
+
+  if (playerB.correctAnswers !== playerA.correctAnswers) {
+    return playerB.correctAnswers - playerA.correctAnswers
+  }
+
+  if (playerA.finishedAt && playerB.finishedAt) {
+    return (
+      new Date(playerA.finishedAt).getTime() -
+      new Date(playerB.finishedAt).getTime()
+    )
+  }
+
+  return 0
+})
+
+const finishedPlayersCount = players.filter(
+  (player) => player.isFinished,
+).length
+
+const remainingPlayersCount =
+  players.length - finishedPlayersCount
+
+const everyoneFinished =
+  players.length > 0 &&
+  remainingPlayersCount === 0
 
   return (
     <main className="app">
@@ -590,13 +817,18 @@ function completeAnswer(points) {
 
 {currentPage === 'leaderboard' && (
   <LeaderboardPage
-    players={players}
-    currentQuestion={currentQuestion}
-    totalQuestions={gameQuestions.length}
-    onNext={restartQuiz}
-    onHome={goHome}
-    isLastQuestion={true}
-  />
+  players={leaderboardPlayers}
+  currentQuestion={currentQuestion}
+  totalQuestions={gameQuestions.length}
+  onNext={restartQuiz}
+  onHome={goHome}
+  isLastQuestion={true}
+  finishedPlayersCount={finishedPlayersCount}
+  remainingPlayersCount={remainingPlayersCount}
+  everyoneFinished={everyoneFinished}
+  currentPlayerId={currentPlayerId}
+  isHost={isCurrentPlayerHost}
+/>
 )}
 
       {currentPage === 'results' && (
