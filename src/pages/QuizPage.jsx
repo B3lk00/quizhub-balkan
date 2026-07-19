@@ -1,4 +1,9 @@
 import { useEffect, useState } from 'react'
+import {
+  playCorrectSound,
+  playTickSound,
+  playWrongSound,
+} from '../utils/sounds'
 
 export const allQuestions = [
   {
@@ -143,15 +148,26 @@ function QuizPage({
   }, [currentQuestion, totalTime])
 
   useEffect(() => {
+  if (
+    !isAnswered &&
+    timeLeft > 0 &&
+    timeLeft <= 3
+  ) {
+    playTickSound()
+  }
+}, [timeLeft, isAnswered])
+
+  useEffect(() => {
     if (isAnswered) {
       return
     }
 
-    if (timeLeft <= 0) {
-      setIsAnswered(true)
-      setAwardedPoints(0)
-      return
-    }
+if (timeLeft <= 0) {
+  setIsAnswered(true)
+  setAwardedPoints(0)
+  playWrongSound()
+  return
+}
 
     const timer = setTimeout(() => {
       setTimeLeft((currentTime) => currentTime - 1)
@@ -160,23 +176,28 @@ function QuizPage({
     return () => clearTimeout(timer)
   }, [timeLeft, isAnswered])
 
-  function handleAnswer(answerIndex) {
-    if (isAnswered) {
-      return
-    }
-
-    setSelectedAnswer(answerIndex)
-    setIsAnswered(true)
-
-    if (answerIndex === question.correctAnswer) {
-      const speedBonus = Math.round((timeLeft / totalTime) * 500)
-      const points = 500 + speedBonus
-
-      setAwardedPoints(points)
-    } else {
-      setAwardedPoints(0)
-    }
+function handleAnswer(answerIndex) {
+  if (isAnswered) {
+    return
   }
+
+  setSelectedAnswer(answerIndex)
+  setIsAnswered(true)
+
+  if (answerIndex === question.correctAnswer) {
+    const speedBonus = Math.round(
+      (timeLeft / totalTime) * 500,
+    )
+
+    const points = 500 + speedBonus
+
+    setAwardedPoints(points)
+    playCorrectSound()
+  } else {
+    setAwardedPoints(0)
+    playWrongSound()
+  }
+}
 
 async function showLeaderboard() {
   if (answerSubmitted) {
