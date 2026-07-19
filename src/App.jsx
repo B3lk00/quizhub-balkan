@@ -23,21 +23,46 @@ useEffect(() => {
     return
   }
 
-  const playersChannel = supabase
-    .channel(`room-players-${roomData.id}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'players',
-        filter: `room_id=eq.${roomData.id}`,
-      },
-      () => {
-        loadRoomPlayers(roomData.id, currentPlayerId)
-      },
-    )
-    .subscribe()
+const playersChannel = supabase
+  .channel(`room-players-${roomData.id}`)
+  .on(
+    'postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'players',
+      filter: `room_id=eq.${roomData.id}`,
+    },
+    (payload) => {
+      const changedPlayer = payload.new
+
+      const currentPlayerWasKicked =
+        payload.eventType === 'UPDATE' &&
+        changedPlayer?.id === currentPlayerId &&
+        changedPlayer?.kicked === true
+
+      if (currentPlayerWasKicked) {
+        alert('Domaćin te je izbacio iz sobe.')
+        leaveRoom()
+        return
+      }
+
+      loadRoomPlayers(
+        roomData.id,
+        currentPlayerId,
+      )
+    },
+  )
+  .subscribe((status, error) => {
+    console.log('Players Realtime status:', status)
+
+    if (error) {
+      console.error(
+        'Players Realtime greška:',
+        error,
+      )
+    }
+  })
 
   return () => {
     supabase.removeChannel(playersChannel)
@@ -59,8 +84,8 @@ useEffect(() => {
         table: 'rooms',
         filter: `id=eq.${roomData.id}`,
       },
-      (payload) => {
-        const updatedRoom = payload.new
+      async (payload) => {
+  const updatedRoom = payload.new
 
         setRoomData((previousRoom) => ({
           ...previousRoom,
@@ -72,6 +97,28 @@ if (
   updatedRoom.status === 'playing' &&
   currentPage !== 'quiz'
 ) {
+  const { data: activePlayer, error: playerCheckError } =
+    await supabase
+      .from('players')
+      .select('id')
+      .eq('id', currentPlayerId)
+      .eq('room_id', roomData.id)
+      .maybeSingle()
+
+  if (playerCheckError) {
+    console.error(
+      'Greška pri provjeri igrača:',
+      playerCheckError,
+    )
+    return
+  }
+
+  if (!activePlayer) {
+    alert('Domaćin te je izbacio iz sobe.')
+    leaveRoom()
+    return
+  }
+
   const selectedQuestions = getQuestionsByIds(
     updatedRoom.question_ids,
   )
@@ -100,7 +147,11 @@ if (
   return () => {
     supabase.removeChannel(roomChannel)
   }
-}, [roomData?.id, currentPage])
+}, [
+  roomData?.id,
+  currentPage,
+  currentPlayerId,
+])
 
 useEffect(() => {
   const params = new URLSearchParams(window.location.search)
@@ -111,20 +162,23 @@ useEffect(() => {
   }
 }, [])
 
-async function loadRoomPlayers(roomId, currentPlayerId) {
+async function loadRoomPlayers(roomId, playerIdToCheck) {
   const { data, error } = await supabase
     .from('players')
     .select('*')
     .eq('room_id', roomId)
+    .eq('kicked', false)
     .order('created_at', { ascending: true })
 
   if (error) {
-    console.error('Greška pri učitavanju igrača:', error)
+    console.error(
+      'Greška pri učitavanju igrača:',
+      error,
+    )
     return
   }
 
-setPlayers(
-  (data || []).map((player) => ({
+  const loadedPlayers = (data || []).map((player) => ({
     id: player.id,
     name: player.name,
     score: player.score || 0,
@@ -132,9 +186,11 @@ setPlayers(
     isHost: player.is_host,
     isFinished: player.finished === true,
     finishedAt: player.finished_at,
-    isCurrentPlayer: player.id === currentPlayerId,
-  })),
-)
+    isCurrentPlayer:
+      player.id === playerIdToCheck,
+  }))
+
+  setPlayers(loadedPlayers)
 }
 
   function goHome() {
@@ -164,6 +220,60 @@ function leaveRoom() {
     setCurrentPage('join')
     window.scrollTo(0, 0)
   }
+
+async function kickPlayer(playerId) {
+  if (!roomData?.id || !isCurrentPlayerHost) {
+    alert('Samo domaćin može izbaciti igrača.')
+    return
+  }
+
+  if (playerId === currentPlayerId) {
+    alert('Ne možeš izbaciti samog sebe.')
+    return
+  }
+
+  const playerToKick = players.find(
+    (player) => player.id === playerId,
+  )
+
+  if (!playerToKick) {
+    alert('Igrač nije pronađen.')
+    return
+  }
+
+  const shouldKick = window.confirm(
+    `Želiš li izbaciti igrača "${playerToKick.name}" iz sobe?`,
+  )
+
+  if (!shouldKick) {
+    return
+  }
+
+  const { error } = await supabase
+    .from('players')
+    .update({
+      kicked: true,
+    })
+    .eq('id', playerId)
+    .eq('room_id', roomData.id)
+    .eq('is_host', false)
+
+  if (error) {
+    console.error(
+      'Greška pri izbacivanju igrača:',
+      error,
+    )
+
+    alert('Igrača nije moguće izbaciti.')
+    return
+  }
+
+  setPlayers((currentPlayers) =>
+    currentPlayers.filter(
+      (player) => player.id !== playerId,
+    ),
+  )
+}
 
   async function createRoom(settings) {
   const roomCode = Math.floor(
@@ -240,6 +350,7 @@ setCurrentPlayerId(createdHost.id)
       isCurrentPlayer: true,
       isHost: createdHost.is_host,
       isFinished: false,
+      kicked: false
     },
   ])
 
@@ -351,6 +462,7 @@ async function joinRoom({ playerName, roomCode }) {
         isHost: false,
         isCurrentPlayer: true,
         isFinished: false,
+        kicked: false
       },
     ])
 
@@ -670,6 +782,7 @@ async function restartQuiz() {
       finished_at: null,
     })
     .eq('room_id', roomData.id)
+    .eq('kicked', false)
 
   if (playersError) {
     console.error(
@@ -808,17 +921,19 @@ const everyoneFinished =
   />
 )}
 
-      {currentPage === 'lobby' && roomData && (
-     <LobbyPage
-  roomData={{
-    ...roomData,
-    players: players.map((player) => player.name),
-    onStart: startQuiz,
-    isHost: isCurrentPlayerHost,
-  }}
-  onBack={goHome}
-/>
-      )}
+{currentPage === 'lobby' && roomData && (
+  <LobbyPage
+    roomData={{
+      ...roomData,
+      players,
+      onStart: startQuiz,
+      onKickPlayer: kickPlayer,
+      isHost: isCurrentPlayerHost,
+      currentPlayerId,
+    }}
+    onBack={leaveRoom}
+  />
+)}
 
       {currentPage === 'quiz' && roomData && gameQuestions.length > 0 && (
   <QuizPage

@@ -1845,3 +1845,69 @@
     width: 100%;
   }
 }
+
+
+.player-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.player-info strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.lobby-you-badge {
+  display: inline-flex;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(124, 92, 255, 0.18);
+  color: #a996ff;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.kick-player-button {
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 91, 112, 0.35);
+  border-radius: 9px;
+  background: rgba(255, 91, 112, 0.1);
+  color: #ff7b8e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.kick-player-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 91, 112, 0.7);
+  background: rgba(255, 91, 112, 0.18);
+}
+
+@media (max-width: 600px) {
+  .player-item {
+    gap: 10px;
+  }
+
+  .player-item-actions {
+    gap: 7px;
+  }
+
+  .kick-player-button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}

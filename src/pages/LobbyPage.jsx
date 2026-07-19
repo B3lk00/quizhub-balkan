@@ -4,7 +4,9 @@ import { QRCodeSVG } from 'qrcode.react'
 function LobbyPage({ roomData, onBack }) {
   const [copiedMessage, setCopiedMessage] = useState('')
 
-  const roomLink = `${window.location.origin}?room=${roomData.code}`
+  const roomLink =
+    `${window.location.origin}${window.location.pathname}` +
+    `?room=${roomData.code}`
 
   async function copyToClipboard(text, message) {
     try {
@@ -22,14 +24,17 @@ function LobbyPage({ roomData, onBack }) {
 
   return (
     <section className="lobby-page">
-      <button className="back-button" onClick={onBack}>
+      <button
+        type="button"
+        className="back-button"
+        onClick={onBack}
+      >
         ← Napusti sobu
       </button>
 
       <div className="lobby-header">
         <div>
           <span className="eyebrow">Čekaonica</span>
-
           <h1>Soba je spremna</h1>
 
           <p>
@@ -77,39 +82,54 @@ function LobbyPage({ roomData, onBack }) {
           </div>
 
           <div className="players-list">
-            {roomData.players.map((player, index) => {
-              const playerName =
-                typeof player === 'string'
-                  ? player
-                  : player.name
-
-              const isHost =
-                typeof player === 'object'
-                  ? player.isHost
-                  : index === 0
+            {roomData.players.map((player) => {
+              const isCurrentPlayer =
+                player.id === roomData.currentPlayerId
 
               return (
                 <div
                   className="player-item"
-                  key={
-                    typeof player === 'object'
-                      ? player.id
-                      : `${playerName}-${index}`
-                  }
+                  key={player.id}
                 >
                   <div className="player-avatar">
-                    {playerName.charAt(0).toUpperCase()}
+                    {player.name.charAt(0).toUpperCase()}
                   </div>
 
-                  <div>
-                    <strong>{playerName}</strong>
+                  <div className="player-info">
+                    <strong>
+                      {player.name}
+
+                      {isCurrentPlayer && (
+                        <span className="lobby-you-badge">
+                          Ti
+                        </span>
+                      )}
+                    </strong>
 
                     <span>
-                      {isHost ? 'Voditelj sobe' : 'Spreman'}
+                      {player.isHost
+                        ? 'Voditelj sobe'
+                        : 'Spreman'}
                     </span>
                   </div>
 
-                  <div className="ready-dot"></div>
+                  <div className="player-item-actions">
+                    <div className="ready-dot"></div>
+
+                    {roomData.isHost &&
+                      !player.isHost &&
+                      !isCurrentPlayer && (
+                        <button
+                          type="button"
+                          className="kick-player-button"
+                          onClick={() =>
+                            roomData.onKickPlayer(player.id)
+                          }
+                        >
+                          Izbaci
+                        </button>
+                      )}
+                  </div>
                 </div>
               )
             })}
@@ -170,6 +190,7 @@ function LobbyPage({ roomData, onBack }) {
 
           {roomData.isHost ? (
             <button
+              type="button"
               className="start-quiz-button"
               onClick={roomData.onStart}
             >
@@ -183,8 +204,8 @@ function LobbyPage({ roomData, onBack }) {
           )}
 
           <p className="lobby-note">
-            Kada domaćin pokrene kviz, igra će se automatski otvoriti
-            svim pridruženim igračima.
+            Kada domaćin pokrene kviz, igra će se automatski
+            otvoriti svim pridruženim igračima.
           </p>
         </aside>
       </div>
