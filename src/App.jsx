@@ -17,6 +17,7 @@ function App() {
   const [finalScore, setFinalScore] = useState(0)
   const [currentPlayerId, setCurrentPlayerId] = useState(null)
   const [gameQuestions, setGameQuestions] = useState([])
+  const [messages, setMessages] = useState([])
   
 useEffect(() => {
   if (!roomData?.id || !currentPlayerId) {
@@ -162,6 +163,70 @@ useEffect(() => {
   }
 }, [])
 
+useEffect(() => {
+  if (!roomData?.id || !currentPlayerId) {
+    return
+  }
+
+  loadRoomMessages(roomData.id)
+
+  const messagesChannel = supabase
+    .channel(`room-messages-${roomData.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `room_id=eq.${roomData.id}`,
+      },
+      (payload) => {
+        const newMessage = payload.new
+
+        setMessages((currentMessages) => {
+          const messageAlreadyExists =
+            currentMessages.some(
+              (message) =>
+                message.id === newMessage.id,
+            )
+
+          if (messageAlreadyExists) {
+            return currentMessages
+          }
+
+          return [
+            ...currentMessages,
+            {
+              id: newMessage.id,
+              roomId: newMessage.room_id,
+              playerId: newMessage.player_id,
+              playerName: newMessage.player_name,
+              text: newMessage.message,
+              createdAt: newMessage.created_at,
+            },
+          ]
+        })
+      },
+    )
+    .subscribe((status, error) => {
+      console.log(
+        'Messages Realtime status:',
+        status,
+      )
+
+      if (error) {
+        console.error(
+          'Messages Realtime greška:',
+          error,
+        )
+      }
+    })
+
+  return () => {
+    supabase.removeChannel(messagesChannel)
+  }
+}, [roomData?.id, currentPlayerId])
+
 async function loadRoomPlayers(roomId, playerIdToCheck) {
   const { data, error } = await supabase
     .from('players')
@@ -204,6 +269,7 @@ function leaveRoom() {
   setCurrentPage('home')
   setRoomData(null)
   setPlayers([])
+  setMessages([])
   setCurrentPlayerId(null)
   setGameQuestions([])
   setCurrentQuestion(0)
@@ -220,6 +286,91 @@ function leaveRoom() {
     setCurrentPage('join')
     window.scrollTo(0, 0)
   }
+
+  async function loadRoomMessages(roomId) {
+  if (!roomId) {
+    return
+  }
+
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true })
+    .limit(100)
+
+  if (error) {
+    console.error(
+      'Greška pri učitavanju poruka:',
+      error,
+    )
+    return
+  }
+
+  setMessages(
+    (data || []).map((message) => ({
+      id: message.id,
+      roomId: message.room_id,
+      playerId: message.player_id,
+      playerName: message.player_name,
+      text: message.message,
+      createdAt: message.created_at,
+    })),
+  )
+}
+
+async function sendMessage(messageText) {
+  if (!roomData?.id || !currentPlayerId) {
+    alert('Nisi povezan sa sobom.')
+    return false
+  }
+
+  const cleanMessage = messageText.trim()
+
+  if (!cleanMessage) {
+    return false
+  }
+
+  if (cleanMessage.length > 200) {
+    alert('Poruka može imati najviše 200 znakova.')
+    return false
+  }
+
+  const currentChatPlayer = players.find(
+    (player) => player.id === currentPlayerId,
+  )
+
+  if (!currentChatPlayer) {
+    alert('Igrač nije pronađen.')
+    return false
+  }
+
+  if (currentChatPlayer.kicked === true) {
+    alert('Više nisi član ove sobe.')
+    return false
+  }
+
+  const { error } = await supabase
+    .from('messages')
+    .insert({
+      room_id: roomData.id,
+      player_id: currentPlayerId,
+      player_name: currentChatPlayer.name,
+      message: cleanMessage,
+    })
+
+  if (error) {
+    console.error(
+      'Greška pri slanju poruke:',
+      error,
+    )
+
+    alert('Poruka nije poslana.')
+    return false
+  }
+
+  return true
+}
 
 async function kickPlayer(playerId) {
   if (!roomData?.id || !isCurrentPlayerHost) {
@@ -926,10 +1077,13 @@ const everyoneFinished =
     roomData={{
       ...roomData,
       players,
+      messages,
+      currentPlayerId,
       onStart: startQuiz,
       onKickPlayer: kickPlayer,
+      onSendMessage: sendMessage,
       isHost: isCurrentPlayerHost,
-      currentPlayerId,
+      
     }}
     onBack={leaveRoom}
   />

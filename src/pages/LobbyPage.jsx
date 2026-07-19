@@ -1,12 +1,28 @@
-import { useState } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
 function LobbyPage({ roomData, onBack }) {
-  const [copiedMessage, setCopiedMessage] = useState('')
+  const [copiedMessage, setCopiedMessage] =
+    useState('')
+
+  const [chatMessage, setChatMessage] = useState('')
+  const [isSending, setIsSending] = useState(false)
+
+  const messagesEndRef = useRef(null)
 
   const roomLink =
     `${window.location.origin}${window.location.pathname}` +
     `?room=${roomData.code}`
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+    })
+  }, [roomData.messages])
 
   async function copyToClipboard(text, message) {
     try {
@@ -17,9 +33,47 @@ function LobbyPage({ roomData, onBack }) {
         setCopiedMessage('')
       }, 2000)
     } catch (error) {
-      console.error('Kopiranje nije uspjelo:', error)
-      alert('Kopiranje nije uspjelo. Kopiraj ručno.')
+      console.error(
+        'Kopiranje nije uspjelo:',
+        error,
+      )
+
+      alert(
+        'Kopiranje nije uspjelo. Kopiraj ručno.',
+      )
     }
+  }
+
+  async function handleSendMessage(event) {
+    event.preventDefault()
+
+    const cleanMessage = chatMessage.trim()
+
+    if (!cleanMessage || isSending) {
+      return
+    }
+
+    setIsSending(true)
+
+    const wasSent =
+      await roomData.onSendMessage(cleanMessage)
+
+    if (wasSent) {
+      setChatMessage('')
+    }
+
+    setIsSending(false)
+  }
+
+  function formatMessageTime(dateValue) {
+    if (!dateValue) {
+      return ''
+    }
+
+    return new Intl.DateTimeFormat('bs-BA', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(dateValue))
   }
 
   return (
@@ -38,8 +92,8 @@ function LobbyPage({ roomData, onBack }) {
           <h1>Soba je spremna</h1>
 
           <p>
-            Podijeli kod ili QR sa prijateljima i sačekaj da se svi
-            pridruže.
+            Podijeli kod ili QR sa prijateljima i
+            sačekaj da se svi pridruže.
           </p>
         </div>
 
@@ -69,75 +123,189 @@ function LobbyPage({ roomData, onBack }) {
       )}
 
       <div className="lobby-grid">
-        <div className="players-card">
-          <div className="players-header">
-            <div>
-              <span className="eyebrow">Igrači</span>
-              <h2>Pridruženi igrači</h2>
+        <div className="lobby-left-column">
+          <div className="players-card">
+            <div className="players-header">
+              <div>
+                <span className="eyebrow">
+                  Igrači
+                </span>
+
+                <h2>Pridruženi igrači</h2>
+              </div>
+
+              <span className="player-count">
+                {roomData.players.length}/20
+              </span>
             </div>
 
-            <span className="player-count">
-              {roomData.players.length}/20
-            </span>
+            <div className="players-list">
+              {roomData.players.map((player) => {
+                const isCurrentPlayer =
+                  player.id ===
+                  roomData.currentPlayerId
+
+                return (
+                  <div
+                    className="player-item"
+                    key={player.id}
+                  >
+                    <div className="player-avatar">
+                      {player.name
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+
+                    <div className="player-info">
+                      <strong>
+                        {player.name}
+
+                        {isCurrentPlayer && (
+                          <span className="lobby-you-badge">
+                            Ti
+                          </span>
+                        )}
+                      </strong>
+
+                      <span>
+                        {player.isHost
+                          ? 'Voditelj sobe'
+                          : 'Spreman'}
+                      </span>
+                    </div>
+
+                    <div className="player-item-actions">
+                      <div className="ready-dot"></div>
+
+                      {roomData.isHost &&
+                        !player.isHost &&
+                        !isCurrentPlayer && (
+                          <button
+                            type="button"
+                            className="kick-player-button"
+                            onClick={() =>
+                              roomData.onKickPlayer(
+                                player.id,
+                              )
+                            }
+                          >
+                            Izbaci
+                          </button>
+                        )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
-          <div className="players-list">
-            {roomData.players.map((player) => {
-              const isCurrentPlayer =
-                player.id === roomData.currentPlayerId
+          <div className="lobby-chat-card">
+            <div className="chat-header">
+              <div>
+                <span className="eyebrow">
+                  Razgovor
+                </span>
 
-              return (
-                <div
-                  className="player-item"
-                  key={player.id}
-                >
-                  <div className="player-avatar">
-                    {player.name.charAt(0).toUpperCase()}
-                  </div>
+                <h2>Chat sobe</h2>
+              </div>
 
-                  <div className="player-info">
-                    <strong>
-                      {player.name}
+              <span className="chat-online">
+                Uživo
+              </span>
+            </div>
 
-                      {isCurrentPlayer && (
-                        <span className="lobby-you-badge">
-                          Ti
-                        </span>
-                      )}
-                    </strong>
+            <div className="chat-messages">
+              {roomData.messages.length === 0 ? (
+                <div className="empty-chat">
+                  <span>💬</span>
 
-                    <span>
-                      {player.isHost
-                        ? 'Voditelj sobe'
-                        : 'Spreman'}
-                    </span>
-                  </div>
+                  <strong>
+                    Još nema poruka
+                  </strong>
 
-                  <div className="player-item-actions">
-                    <div className="ready-dot"></div>
-
-                    {roomData.isHost &&
-                      !player.isHost &&
-                      !isCurrentPlayer && (
-                        <button
-                          type="button"
-                          className="kick-player-button"
-                          onClick={() =>
-                            roomData.onKickPlayer(player.id)
-                          }
-                        >
-                          Izbaci
-                        </button>
-                      )}
-                  </div>
+                  <p>
+                    Napiši prvu poruku igračima u
+                    sobi.
+                  </p>
                 </div>
-              )
-            })}
+              ) : (
+                roomData.messages.map((message) => {
+                  const isOwnMessage =
+                    message.playerId ===
+                    roomData.currentPlayerId
+
+                  return (
+                    <div
+                      className={`chat-message ${
+                        isOwnMessage
+                          ? 'own-message'
+                          : ''
+                      }`}
+                      key={message.id}
+                    >
+                      <div className="chat-message-top">
+                        <strong>
+                          {isOwnMessage
+                            ? 'Ti'
+                            : message.playerName}
+                        </strong>
+
+                        <span>
+                          {formatMessageTime(
+                            message.createdAt,
+                          )}
+                        </span>
+                      </div>
+
+                      <p>{message.text}</p>
+                    </div>
+                  )
+                })
+              )}
+
+              <div ref={messagesEndRef}></div>
+            </div>
+
+            <form
+              className="chat-form"
+              onSubmit={handleSendMessage}
+            >
+              <input
+                type="text"
+                value={chatMessage}
+                onChange={(event) =>
+                  setChatMessage(
+                    event.target.value.slice(0, 200),
+                  )
+                }
+                placeholder="Napiši poruku..."
+                maxLength={200}
+                autoComplete="off"
+              />
+
+              <span className="chat-character-count">
+                {chatMessage.length}/200
+              </span>
+
+              <button
+                type="submit"
+                disabled={
+                  !chatMessage.trim() || isSending
+                }
+              >
+                {isSending
+                  ? 'Šaljem...'
+                  : 'Pošalji'}
+              </button>
+            </form>
           </div>
         </div>
 
         <aside className="room-settings-card">
-          <span className="eyebrow">Postavke igre</span>
+          <span className="eyebrow">
+            Postavke igre
+          </span>
+
           <h2>Detalji partije</h2>
 
           <div className="setting-item">
@@ -147,12 +315,16 @@ function LobbyPage({ roomData, onBack }) {
 
           <div className="setting-item">
             <span>Broj pitanja</span>
-            <strong>{roomData.questionCount}</strong>
+            <strong>
+              {roomData.questionCount}
+            </strong>
           </div>
 
           <div className="setting-item">
             <span>Vrijeme po pitanju</span>
-            <strong>{roomData.timeLimit} sekundi</strong>
+            <strong>
+              {roomData.timeLimit} sekundi
+            </strong>
           </div>
 
           <div className="lobby-qr-section">
@@ -167,10 +339,13 @@ function LobbyPage({ roomData, onBack }) {
             </div>
 
             <div className="qr-code-content">
-              <strong>Skeniraj za pridruživanje</strong>
+              <strong>
+                Skeniraj za pridruživanje
+              </strong>
 
               <p>
-                Otvori kameru na telefonu i skeniraj QR kod.
+                Otvori kameru na telefonu i
+                skeniraj QR kod.
               </p>
 
               <button
@@ -204,8 +379,9 @@ function LobbyPage({ roomData, onBack }) {
           )}
 
           <p className="lobby-note">
-            Kada domaćin pokrene kviz, igra će se automatski
-            otvoriti svim pridruženim igračima.
+            Kada domaćin pokrene kviz, igra će se
+            automatski otvoriti svim pridruženim
+            igračima.
           </p>
         </aside>
       </div>
