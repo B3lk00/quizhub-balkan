@@ -102,6 +102,15 @@ if (
   }
 }, [roomData?.id, currentPage])
 
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const roomCodeFromLink = params.get('room')
+
+  if (roomCodeFromLink) {
+    setCurrentPage('join')
+  }
+}, [])
+
 async function loadRoomPlayers(roomId, currentPlayerId) {
   const { data, error } = await supabase
     .from('players')
@@ -344,6 +353,12 @@ async function joinRoom({ playerName, roomCode }) {
         isFinished: false,
       },
     ])
+
+window.history.replaceState(
+  {},
+  '',
+  window.location.pathname,
+)
 
     setCurrentQuestion(foundRoom.current_question || 0)
     setCurrentPage('lobby')

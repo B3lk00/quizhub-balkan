@@ -1,9 +1,24 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 function JoinRoomPage({ onBack, onJoin }) {
   const [playerName, setPlayerName] = useState('')
   const [roomCode, setRoomCode] = useState('')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const codeFromLink = params.get('room')
+
+  if (!codeFromLink) return
+
+  const cleanCode = codeFromLink
+    .replace(/\D/g, '')
+    .slice(0, 6)
+
+  if (cleanCode.length === 6) {
+    setRoomCode(cleanCode)
+  }
+}, [])
 
   function handleSubmit(event) {
     event.preventDefault()
