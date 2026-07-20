@@ -31,45 +31,100 @@ function GuessFlag({ onBack }) {
   const [correctAnswers, setCorrectAnswers] = useState(0)
   const [isFinished, setIsFinished] = useState(false)
 
+const QUESTION_TIME = 15
+const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
+
   const currentFlag = gameFlags[questionIndex]
 
-  useEffect(() => {
-    if (!currentFlag) return
+useEffect(() => {
+  if (!currentFlag) return
 
-    setAnswers(createAnswers(currentFlag))
-    setSelectedAnswer(null)
-  }, [currentFlag])
+  setAnswers(createAnswers(currentFlag))
+  setSelectedAnswer(null)
+  setTimeLeft(QUESTION_TIME)
+}, [currentFlag])
 
-  function handleAnswer(answer) {
-    if (selectedAnswer) return
-
-    setSelectedAnswer(answer)
-
-    const isCorrect = answer === currentFlag.country
-
-    if (isCorrect) {
-      setScore((currentScore) => currentScore + 1000)
-      setCorrectAnswers(
-        (currentCorrectAnswers) =>
-          currentCorrectAnswers + 1,
-      )
-    }
-
-    setTimeout(() => {
-      const isLastQuestion =
-        questionIndex === gameFlags.length - 1
-
-      if (isLastQuestion) {
-        setIsFinished(true)
-        return
-      }
-
-      setQuestionIndex(
-        (currentQuestionIndex) =>
-          currentQuestionIndex + 1,
-      )
-    }, 1200)
+useEffect(() => {
+  if (
+    isFinished ||
+    selectedAnswer ||
+    !currentFlag
+  ) {
+    return
   }
+
+  if (timeLeft <= 0) {
+    handleTimeExpired()
+    return
+  }
+
+  const timer = setTimeout(() => {
+    setTimeLeft((currentTime) => currentTime - 1)
+  }, 1000)
+
+  return () => clearTimeout(timer)
+}, [
+  timeLeft,
+  selectedAnswer,
+  isFinished,
+  currentFlag,
+])
+
+function handleTimeExpired() {
+  if (selectedAnswer) return
+
+  setSelectedAnswer('__time_expired__')
+
+  setTimeout(() => {
+    goToNextQuestion()
+  }, 1200)
+}
+
+function handleTimeExpired() {
+  if (selectedAnswer) return
+
+  setSelectedAnswer('__time_expired__')
+
+  setTimeout(() => {
+    goToNextQuestion()
+  }, 1200)
+}
+
+function goToNextQuestion() {
+  const isLastQuestion =
+    questionIndex === gameFlags.length - 1
+
+  if (isLastQuestion) {
+    setIsFinished(true)
+    return
+  }
+
+  setQuestionIndex(
+    (currentQuestionIndex) =>
+      currentQuestionIndex + 1,
+  )
+}
+
+ function handleAnswer(answer) {
+  if (selectedAnswer) return
+
+  setSelectedAnswer(answer)
+
+  const isCorrect = answer === currentFlag.country
+
+  if (isCorrect) {
+    setScore((currentScore) => currentScore + 1000)
+
+    setCorrectAnswers(
+      (currentCorrectAnswers) =>
+        currentCorrectAnswers + 1,
+    )
+  }
+
+  setTimeout(() => {
+    goToNextQuestion()
+  }, 1200)
+}
 
   function getAnswerClass(answer) {
     if (!selectedAnswer) {
@@ -94,6 +149,7 @@ function restartGame() {
   setScore(0)
   setCorrectAnswers(0)
   setIsFinished(false)
+  setTimeLeft(QUESTION_TIME)
 }
 
   if (isFinished) {
@@ -207,6 +263,22 @@ function restartGame() {
           <span className="guess-flag-question-label">
             KOJA JE OVO DRŽAVA?
           </span>
+
+          <div
+  className={`guess-flag-timer ${
+    timeLeft <= 5 ? 'warning' : ''
+  } ${timeLeft <= 3 ? 'danger' : ''}`}
+  style={{
+    '--timer-progress': `${
+      (timeLeft / QUESTION_TIME) * 360
+    }deg`,
+  }}
+>
+  <div className="guess-flag-timer-inner">
+    <strong>{timeLeft}</strong>
+    <span>sek</span>
+  </div>
+</div>
 
           <div className="guess-flag-image-wrapper">
             <img

@@ -305,3 +305,90 @@
     flex-direction: column;
   }
 }
+
+.guess-flag-timer {
+  --timer-progress: 360deg;
+
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      #7254ff var(--timer-progress),
+      rgba(255, 255, 255, 0.08) 0deg
+    );
+  box-shadow:
+    0 0 30px rgba(114, 84, 255, 0.24),
+    inset 0 0 20px rgba(0, 0, 0, 0.28);
+  transition:
+    background 0.3s ease,
+    transform 0.2s ease;
+}
+
+.guess-flag-timer::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: #111422;
+}
+
+.guess-flag-timer-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.guess-flag-timer strong {
+  font-size: 31px;
+}
+
+.guess-flag-timer span {
+  margin-top: 4px;
+  color: #8e94ad;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.guess-flag-timer.warning {
+  background:
+    conic-gradient(
+      #ffab3d var(--timer-progress),
+      rgba(255, 255, 255, 0.08) 0deg
+    );
+  box-shadow:
+    0 0 32px rgba(255, 171, 61, 0.28),
+    inset 0 0 20px rgba(0, 0, 0, 0.28);
+}
+
+.guess-flag-timer.danger {
+  background:
+    conic-gradient(
+      #ff4f64 var(--timer-progress),
+      rgba(255, 255, 255, 0.08) 0deg
+    );
+  box-shadow:
+    0 0 36px rgba(255, 79, 100, 0.38),
+    inset 0 0 20px rgba(0, 0, 0, 0.28);
+  animation: guess-flag-timer-pulse 0.7s infinite;
+}
+
+@keyframes guess-flag-timer-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+}
