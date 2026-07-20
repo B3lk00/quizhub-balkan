@@ -31,6 +31,9 @@ function GuessFlag({ onBack }) {
   const [correctAnswers, setCorrectAnswers] = useState(0)
   const [isFinished, setIsFinished] = useState(false)
 
+const [streak, setStreak] = useState(0)
+const [earnedPoints, setEarnedPoints] = useState(0)
+
 const QUESTION_TIME = 15
 const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
 
@@ -42,6 +45,7 @@ useEffect(() => {
   setAnswers(createAnswers(currentFlag))
   setSelectedAnswer(null)
   setTimeLeft(QUESTION_TIME)
+  setEarnedPoints(0)
 }, [currentFlag])
 
 useEffect(() => {
@@ -84,6 +88,8 @@ function handleTimeExpired() {
   if (selectedAnswer) return
 
   setSelectedAnswer('__time_expired__')
+  setStreak(0)
+setEarnedPoints(0)
 
   setTimeout(() => {
     goToNextQuestion()
@@ -105,7 +111,7 @@ function goToNextQuestion() {
   )
 }
 
- function handleAnswer(answer) {
+function handleAnswer(answer) {
   if (selectedAnswer) return
 
   setSelectedAnswer(answer)
@@ -113,12 +119,28 @@ function goToNextQuestion() {
   const isCorrect = answer === currentFlag.country
 
   if (isCorrect) {
-    setScore((currentScore) => currentScore + 1000)
+    const newStreak = streak + 1
+
+    const speedBonus = timeLeft * 20
+    const streakBonus =
+      newStreak >= 3 ? (newStreak - 2) * 100 : 0
+
+    const points = 500 + speedBonus + streakBonus
+
+    setStreak(newStreak)
+    setEarnedPoints(points)
+
+    setScore(
+      (currentScore) => currentScore + points,
+    )
 
     setCorrectAnswers(
       (currentCorrectAnswers) =>
         currentCorrectAnswers + 1,
     )
+  } else {
+    setStreak(0)
+    setEarnedPoints(0)
   }
 
   setTimeout(() => {
@@ -150,6 +172,8 @@ function restartGame() {
   setCorrectAnswers(0)
   setIsFinished(false)
   setTimeLeft(QUESTION_TIME)
+  setStreak(0)
+setEarnedPoints(0)
 }
 
   if (isFinished) {
@@ -280,7 +304,20 @@ function restartGame() {
   </div>
 </div>
 
+{streak >= 2 && (
+  <div className="guess-flag-streak">
+    🔥 {streak}x STREAK
+  </div>
+)}
           <div className="guess-flag-image-wrapper">
+{selectedAnswer &&
+  selectedAnswer === currentFlag.country &&
+  earnedPoints > 0 && (
+    <div className="guess-flag-earned-points">
+      +{earnedPoints}
+    </div>
+  )}
+
             <img
               src={currentFlag.image}
               alt="Zastava države"
