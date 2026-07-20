@@ -108,3 +108,40 @@ export function setSoundVolume(volume) {
 export function getSoundVolume() {
   return soundVolume
 }
+
+const soundPaths = {
+  correct: '/sounds/correct.mp3',
+  wrong: '/sounds/wrong.mp3',
+  tick: '/sounds/tick.mp3',
+  finish: '/sounds/finish.mp3',
+}
+
+const audioCache = {}
+
+function getAudio(soundName) {
+  if (!soundPaths[soundName]) {
+    console.warn(`Zvuk "${soundName}" ne postoji.`)
+    return null
+  }
+
+  if (!audioCache[soundName]) {
+    audioCache[soundName] = new Audio(soundPaths[soundName])
+    audioCache[soundName].preload = 'auto'
+  }
+
+  return audioCache[soundName]
+}
+
+export function playSound(soundName, volume = 0.6) {
+  const audio = getAudio(soundName)
+
+  if (!audio) return
+
+  audio.pause()
+  audio.currentTime = 0
+  audio.volume = volume
+
+  audio.play().catch((error) => {
+    console.warn('Zvuk nije pokrenut:', error)
+  })
+}

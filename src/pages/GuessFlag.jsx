@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { flags } from '../data/questions/flags'
+import { playSound } from '../utils/sounds'
 import './GuessFlag.css'
 
 function shuffleArray(items) {
@@ -36,6 +37,7 @@ const QUESTION_TIME = 15
 const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
   const currentFlag = gameFlags[questionIndex]
   const [answerResult, setAnswerResult] = useState(null)
+  const [soundEnabled, setSoundEnabled] = useState(true)
 
 useEffect(() => {
   if (!currentFlag) return
@@ -73,6 +75,17 @@ useEffect(() => {
   currentFlag,
 ])
 
+useEffect(() => {
+  if (
+    timeLeft > 0 &&
+    timeLeft <= 3 &&
+    !selectedAnswer &&
+    !isFinished
+  ) {
+    playSound('tick', 0.45)
+  }
+}, [timeLeft, selectedAnswer, isFinished])
+
 function handleTimeExpired() {
   if (selectedAnswer) return
 
@@ -86,10 +99,12 @@ function handleTimeExpired() {
 function handleTimeExpired() {
   if (selectedAnswer) return
 
+  playSound('wrong', 0.65)
+
   setSelectedAnswer('__time_expired__')
   setAnswerResult('timeout')
   setStreak(0)
-setEarnedPoints(0)
+  setEarnedPoints(0)
 
   setTimeout(() => {
     goToNextQuestion()
@@ -100,10 +115,11 @@ function goToNextQuestion() {
   const isLastQuestion =
     questionIndex === gameFlags.length - 1
 
-  if (isLastQuestion) {
-    setIsFinished(true)
-    return
-  }
+if (isLastQuestion) {
+  playSound('finish', 0.7)
+  setIsFinished(true)
+  return
+}
 
   setQuestionIndex(
     (currentQuestionIndex) =>
@@ -118,32 +134,37 @@ function handleAnswer(answer) {
 
   const isCorrect = answer === currentFlag.country
 
-  if (isCorrect) {
-    setAnswerResult('correct')
+if (isCorrect) {
+if (soundEnabled) {
+  playSound('correct', 0.65)
+}  setAnswerResult('correct')
 
-    const newStreak = streak + 1
-    const speedBonus = timeLeft * 20
-    const streakBonus =
-      newStreak >= 3 ? (newStreak - 2) * 100 : 0
+  const newStreak = streak + 1
+  const speedBonus = timeLeft * 20
+  const streakBonus =
+    newStreak >= 3 ? (newStreak - 2) * 100 : 0
 
-    const points = 500 + speedBonus + streakBonus
+  const points = 500 + speedBonus + streakBonus
 
-    setStreak(newStreak)
-    setEarnedPoints(points)
+  setStreak(newStreak)
+  setEarnedPoints(points)
 
-    setScore(
-      (currentScore) => currentScore + points,
-    )
+  setScore(
+    (currentScore) => currentScore + points,
+  )
 
-    setCorrectAnswers(
-      (currentCorrectAnswers) =>
-        currentCorrectAnswers + 1,
-    )
-  } else {
-    setAnswerResult('wrong')
-    setStreak(0)
-    setEarnedPoints(0)
-  }
+  setCorrectAnswers(
+    (currentCorrectAnswers) =>
+      currentCorrectAnswers + 1,
+  )
+} else {
+  if (soundEnabled) {
+  playSound('wrong', 0.65)
+}
+  setAnswerResult('wrong')
+  setStreak(0)
+  setEarnedPoints(0)
+}
 
   setTimeout(() => {
     goToNextQuestion()
@@ -258,6 +279,15 @@ setAnswerResult(null)
         </div>
 
         <div className="guess-flag-score">
+          <button
+  type="button"
+  className="guess-flag-sound-button"
+  onClick={() =>
+    setSoundEnabled((currentValue) => !currentValue)
+  }
+>
+  {soundEnabled ? '🔊' : '🔇'}
+</button>
           <span>REZULTAT</span>
           <strong>{score}</strong>
         </div>
