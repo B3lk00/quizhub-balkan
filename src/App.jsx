@@ -9,6 +9,7 @@ import QuizPage from './pages/QuizPage'
 import { allQuestions } from './data/questions'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResultsPage from './pages/ResultsPage'
+import GameModes from './pages/GameModes'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -287,6 +288,20 @@ function leaveRoom() {
     setCurrentPage('join')
     window.scrollTo(0, 0)
   }
+
+  function openGameModes() {
+  setCurrentPage('game-modes')
+  window.scrollTo(0, 0)
+}
+
+function selectGameMode(modeId) {
+  if (modeId === 'guess-flag') {
+    alert('Pogodi zastavu povezujemo u sljedećem koraku.')
+    return
+  }
+
+  alert('Ovaj game mode još nije dostupan.')
+}
 
   async function loadRoomMessages(roomId) {
   if (!roomId) {
@@ -1044,12 +1059,19 @@ const everyoneFinished =
           QUIZ<span>HUB</span>
         </button>
 
-        {currentPage === 'home' && (
-          <div className="nav-links">
-            <a href="#features">Mogućnosti</a>
-            <button onClick={openJoinRoom}>Pridruži se</button>
-          </div>
-        )}
+       {currentPage === 'home' && (
+  <div className="nav-links">
+    <a href="#features">Mogućnosti</a>
+
+    <button onClick={openGameModes}>
+      Game Modes
+    </button>
+
+    <button onClick={openJoinRoom}>
+      Pridruži se
+    </button>
+  </div>
+)}
       </nav>
 
       {currentPage === 'home' && (
@@ -1058,6 +1080,13 @@ const everyoneFinished =
           onJoinRoom={openJoinRoom}
         />
       )}
+
+      {currentPage === 'game-modes' && (
+  <GameModes
+    onBack={goHome}
+    onSelectMode={selectGameMode}
+  />
+)}
 
       {currentPage === 'create' && (
         <CreateRoomPage
