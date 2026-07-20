@@ -30,20 +30,19 @@ function GuessFlag({ onBack }) {
   const [score, setScore] = useState(0)
   const [correctAnswers, setCorrectAnswers] = useState(0)
   const [isFinished, setIsFinished] = useState(false)
-
 const [streak, setStreak] = useState(0)
 const [earnedPoints, setEarnedPoints] = useState(0)
-
 const QUESTION_TIME = 15
 const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
-
   const currentFlag = gameFlags[questionIndex]
+  const [answerResult, setAnswerResult] = useState(null)
 
 useEffect(() => {
   if (!currentFlag) return
 
   setAnswers(createAnswers(currentFlag))
   setSelectedAnswer(null)
+  setAnswerResult(null)
   setTimeLeft(QUESTION_TIME)
   setEarnedPoints(0)
 }, [currentFlag])
@@ -88,6 +87,7 @@ function handleTimeExpired() {
   if (selectedAnswer) return
 
   setSelectedAnswer('__time_expired__')
+  setAnswerResult('timeout')
   setStreak(0)
 setEarnedPoints(0)
 
@@ -119,8 +119,9 @@ function handleAnswer(answer) {
   const isCorrect = answer === currentFlag.country
 
   if (isCorrect) {
-    const newStreak = streak + 1
+    setAnswerResult('correct')
 
+    const newStreak = streak + 1
     const speedBonus = timeLeft * 20
     const streakBonus =
       newStreak >= 3 ? (newStreak - 2) * 100 : 0
@@ -139,6 +140,7 @@ function handleAnswer(answer) {
         currentCorrectAnswers + 1,
     )
   } else {
+    setAnswerResult('wrong')
     setStreak(0)
     setEarnedPoints(0)
   }
@@ -174,6 +176,7 @@ function restartGame() {
   setTimeLeft(QUESTION_TIME)
   setStreak(0)
 setEarnedPoints(0)
+setAnswerResult(null)
 }
 
   if (isFinished) {
@@ -283,7 +286,11 @@ setEarnedPoints(0)
           />
         </div>
 
-        <section className="guess-flag-card">
+        <section
+  className={`guess-flag-card ${
+    answerResult ? `result-${answerResult}` : ''
+  }`}
+>
           <span className="guess-flag-question-label">
             KOJA JE OVO DRŽAVA?
           </span>
@@ -317,6 +324,18 @@ setEarnedPoints(0)
       +{earnedPoints}
     </div>
   )}
+
+  {answerResult === 'wrong' && (
+  <div className="guess-flag-result-message wrong">
+    Netačno
+  </div>
+)}
+
+{answerResult === 'timeout' && (
+  <div className="guess-flag-result-message timeout">
+    Vrijeme je isteklo
+  </div>
+)}
 
             <img
               src={currentFlag.image}
