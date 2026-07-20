@@ -10,6 +10,7 @@ import { allQuestions } from './data/questions'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ResultsPage from './pages/ResultsPage'
 import GameModes from './pages/GameModes'
+import GuessFlag from './pages/GuessFlag'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -296,7 +297,8 @@ function leaveRoom() {
 
 function selectGameMode(modeId) {
   if (modeId === 'guess-flag') {
-    alert('Pogodi zastavu povezujemo u sljedećem koraku.')
+    setCurrentPage('guess-flag')
+    window.scrollTo(0, 0)
     return
   }
 
@@ -1085,6 +1087,15 @@ const everyoneFinished =
   <GameModes
     onBack={goHome}
     onSelectMode={selectGameMode}
+  />
+)}
+
+{currentPage === 'guess-flag' && (
+  <GuessFlag
+    onBack={() => {
+      setCurrentPage('game-modes')
+      window.scrollTo(0, 0)
+    }}
   />
 )}
 

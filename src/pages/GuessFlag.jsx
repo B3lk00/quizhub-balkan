@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { flags } from '../data/flags'
+import { useEffect, useState } from 'react'
+import { flags } from '../data/questions/flags'
 import './GuessFlag.css'
 
 function shuffleArray(items) {
@@ -20,10 +20,9 @@ function createAnswers(correctFlag) {
 }
 
 function GuessFlag({ onBack }) {
-  const gameFlags = useMemo(
-    () => shuffleArray(flags).slice(0, 10),
-    [],
-  )
+  const [gameFlags, setGameFlags] = useState(() =>
+  shuffleArray(flags).slice(0, 10),
+)
 
   const [questionIndex, setQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState([])
@@ -88,9 +87,14 @@ function GuessFlag({ onBack }) {
     return 'guess-flag-answer disabled'
   }
 
-  function restartGame() {
-    window.location.reload()
-  }
+function restartGame() {
+  setGameFlags(shuffleArray(flags).slice(0, 10))
+  setQuestionIndex(0)
+  setSelectedAnswer(null)
+  setScore(0)
+  setCorrectAnswers(0)
+  setIsFinished(false)
+}
 
   if (isFinished) {
     const accuracy = Math.round(
