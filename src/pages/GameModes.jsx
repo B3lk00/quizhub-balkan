@@ -7,7 +7,7 @@ const gameModes = [
     description: 'Prepoznaj državu prema prikazanoj zastavi.',
     icon: '🏳️',
     status: 'active',
-    players: '1–20 igrača',
+    players: 'Solo igra',
   },
   {
     id: 'guess-car',
@@ -22,8 +22,8 @@ const gameModes = [
     title: 'Pogodi logo',
     description: 'Prepoznaj poznate kompanije i brendove.',
     icon: '🏢',
-    status: 'coming-soon',
-    players: 'Uskoro',
+    status: 'active',
+    players: 'Solo igra',
   },
   {
     id: 'guess-country',
@@ -90,20 +90,22 @@ function GameModes({ onBack, onSelectMode }) {
         </button>
 
         <div className="game-modes-header-text">
-          <span className="game-modes-eyebrow">QUIZHUB BALKAN</span>
+          <span className="game-modes-eyebrow">
+            QUIZHUB BALKAN
+          </span>
 
           <h1>
             Odaberi <span>Game Mode</span>
           </h1>
 
           <p>
-            Izaberi način igre, napravi sobu i izazovi svoje prijatelje.
+            Izaberi način igre i testiraj svoje znanje.
           </p>
         </div>
 
         <div className="game-modes-player-badge">
           <span className="game-modes-live-dot" />
-          Multiplayer
+          Game Modes
         </div>
       </header>
 
@@ -118,20 +120,23 @@ function GameModes({ onBack, onSelectMode }) {
             <h2>Pogodi zastavu</h2>
 
             <p>
-              Testiraj koliko dobro poznaješ zastave država iz cijelog
-              svijeta. Brži odgovor donosi više bodova.
+              Testiraj koliko dobro poznaješ zastave država
+              iz cijelog svijeta. Brži odgovor donosi više
+              bodova.
             </p>
 
             <div className="game-modes-featured-info">
-              <span>🌍 195 država</span>
-              <span>👥 Multiplayer</span>
-              <span>⚡ Brzo bodovanje</span>
+              <span>🌍 Države svijeta</span>
+              <span>⏱️ Brzi timer</span>
+              <span>🔥 Streak bonus</span>
             </div>
 
             <button
               type="button"
               className="game-modes-play-button"
-              onClick={() => onSelectMode?.('guess-flag')}
+              onClick={() =>
+                onSelectMode?.('guess-flag')
+              }
             >
               <span>▶</span>
               Igraj sada
@@ -172,16 +177,21 @@ function GameModes({ onBack, onSelectMode }) {
 
           <div className="game-modes-grid">
             {gameModes.map((mode) => {
-              const isActive = mode.status === 'active'
+              const isActive =
+                mode.status === 'active'
 
               return (
                 <button
                   type="button"
                   key={mode.id}
                   className={`game-mode-card ${
-                    isActive ? 'game-mode-card-active' : ''
+                    isActive
+                      ? 'game-mode-card-active'
+                      : ''
                   }`}
-                  onClick={() => handleModeClick(mode)}
+                  onClick={() =>
+                    handleModeClick(mode)
+                  }
                   disabled={!isActive}
                 >
                   <div className="game-mode-card-top">

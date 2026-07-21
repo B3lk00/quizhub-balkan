@@ -11,6 +11,7 @@ import LeaderboardPage from './pages/LeaderboardPage'
 import ResultsPage from './pages/ResultsPage'
 import GameModes from './pages/GameModes'
 import GuessFlag from './pages/GuessFlag'
+import GuessLogo from './pages/GuessLogo'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -1083,10 +1084,10 @@ const everyoneFinished =
         />
       )}
 
-      {currentPage === 'game-modes' && (
+{currentPage === 'game-modes' && (
   <GameModes
-    onBack={goHome}
-    onSelectMode={selectGameMode}
+    onBack={() => setCurrentPage('home')}
+    onSelectMode={(mode) => setCurrentPage(mode)}
   />
 )}
 
@@ -1096,6 +1097,14 @@ const everyoneFinished =
       setCurrentPage('game-modes')
       window.scrollTo(0, 0)
     }}
+  />
+)}
+
+{currentPage === 'guess-logo' && (
+  <GuessLogo
+    onBack={() =>
+      setCurrentPage('game-modes')
+    }
   />
 )}
 

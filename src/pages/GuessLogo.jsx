@@ -1,216 +1,251 @@
 import { useEffect, useState } from 'react'
 import { logos } from '../data/questions/logos'
 import { playSound } from '../utils/sounds'
-import './GuessLogo.css'
+import './GuessFlag.css'
+
+const QUESTION_TIME = 15
 
 function shuffleArray(items) {
   return [...items].sort(() => Math.random() - 0.5)
 }
 
-function createAnswers(correctFlag) {
+function createAnswers(currentLogo) {
   const wrongAnswers = shuffleArray(
-    logos.filter((flag) => flag.id !== correctFlag.id),
+    logos.filter(
+      (logo) => logo.name !== currentLogo.name,
+    ),
   )
     .slice(0, 3)
-    .map((flag) => logo.name)
+    .map((logo) => logo.name)
 
   return shuffleArray([
-    correctlogo.name,
+    currentLogo.name,
     ...wrongAnswers,
   ])
 }
 
 function GuessLogo({ onBack }) {
-  const [gamelogos, setGamelogos] = useState(() =>
-  shuffleArray(logos).slice(0, 10),
-)
+  const [gameLogos, setGameLogos] = useState(() =>
+    shuffleArray(logos).slice(0, 10),
+  )
 
-  const [questionIndex, setQuestionIndex] = useState(0)
+  const [questionIndex, setQuestionIndex] =
+    useState(0)
+
   const [answers, setAnswers] = useState([])
-  const [selectedAnswer, setSelectedAnswer] = useState(null)
+  const [selectedAnswer, setSelectedAnswer] =
+    useState(null)
+
   const [score, setScore] = useState(0)
-  const [correctAnswers, setCorrectAnswers] = useState(0)
-  const [isFinished, setIsFinished] = useState(false)
-const [streak, setStreak] = useState(0)
-const [earnedPoints, setEarnedPoints] = useState(0)
-const QUESTION_TIME = 15
-const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
-  const currentLogo = gamelogos[questionIndex]
-  const [answerResult, setAnswerResult] = useState(null)
-  const [soundEnabled, setSoundEnabled] = useState(true)
 
-useEffect(() => {
-  if (!currentLogo) return
+  const [correctAnswers, setCorrectAnswers] =
+    useState(0)
 
-  setAnswers(createAnswers(currentLogo))
-  setSelectedAnswer(null)
-  setAnswerResult(null)
-  setTimeLeft(QUESTION_TIME)
-  setEarnedPoints(0)
-}, [currentLogo])
+  const [isFinished, setIsFinished] =
+    useState(false)
 
-useEffect(() => {
-  if (
-    isFinished ||
-    selectedAnswer ||
-    !currentLogo
-  ) {
-    return
-  }
+  const [streak, setStreak] = useState(0)
 
-  if (timeLeft <= 0) {
-    handleTimeExpired()
-    return
-  }
+  const [earnedPoints, setEarnedPoints] =
+    useState(0)
 
-  const timer = setTimeout(() => {
-    setTimeLeft((currentTime) => currentTime - 1)
-  }, 1000)
+  const [timeLeft, setTimeLeft] =
+    useState(QUESTION_TIME)
 
-  return () => clearTimeout(timer)
-}, [
-  timeLeft,
-  selectedAnswer,
-  isFinished,
-  currentLogo,
-])
+  const [answerResult, setAnswerResult] =
+    useState(null)
 
-useEffect(() => {
-  if (
-    timeLeft > 0 &&
-    timeLeft <= 3 &&
-    !selectedAnswer &&
-    !isFinished
-  ) {
-    playSound('tick', 0.45)
-  }
-}, [timeLeft, selectedAnswer, isFinished])
+  const [soundEnabled, setSoundEnabled] =
+    useState(true)
 
-function getRank() {
-  if (score >= 10000) {
+  const currentLogo = gameLogos[questionIndex]
+
+  useEffect(() => {
+    if (!currentLogo) return
+
+    setAnswers(createAnswers(currentLogo))
+    setSelectedAnswer(null)
+    setAnswerResult(null)
+    setTimeLeft(QUESTION_TIME)
+    setEarnedPoints(0)
+  }, [currentLogo])
+
+  useEffect(() => {
+    if (
+      isFinished ||
+      selectedAnswer ||
+      !currentLogo
+    ) {
+      return
+    }
+
+    if (timeLeft <= 0) {
+      handleTimeExpired()
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setTimeLeft(
+        (currentTime) => currentTime - 1,
+      )
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [
+    timeLeft,
+    selectedAnswer,
+    isFinished,
+    currentLogo,
+  ])
+
+  useEffect(() => {
+    if (
+      timeLeft > 0 &&
+      timeLeft <= 3 &&
+      !selectedAnswer &&
+      !isFinished &&
+      soundEnabled
+    ) {
+      playSound('tick', 0.45)
+    }
+  }, [
+    timeLeft,
+    selectedAnswer,
+    isFinished,
+    soundEnabled,
+  ])
+
+  function getRank() {
+    if (score >= 10000) {
+      return {
+        name: 'DIAMOND',
+        icon: '💎',
+        message:
+          'Nevjerovatno! Pravi poznavalac logotipa.',
+      }
+    }
+
+    if (score >= 7500) {
+      return {
+        name: 'GOLD',
+        icon: '🏆',
+        message: 'Odličan rezultat!',
+      }
+    }
+
+    if (score >= 5000) {
+      return {
+        name: 'SILVER',
+        icon: '🥈',
+        message:
+          'Vrlo dobro poznaješ poznate brendove.',
+      }
+    }
+
     return {
-      name: 'DIAMOND',
-      icon: '💎',
-      message: 'Nevjerovatno! Pravi poznavalac zastava.',
+      name: 'BRONZE',
+      icon: '🥉',
+      message: 'Dobar početak. Probaj ponovo!',
     }
   }
 
-  if (score >= 7500) {
-    return {
-      name: 'GOLD',
-      icon: '🏆',
-      message: 'Odličan rezultat!',
+  const finalRank = getRank()
+
+  function handleTimeExpired() {
+    if (selectedAnswer) return
+
+    if (soundEnabled) {
+      playSound('wrong', 0.65)
     }
+
+    setSelectedAnswer('__time_expired__')
+    setAnswerResult('timeout')
+    setStreak(0)
+    setEarnedPoints(0)
+
+    setTimeout(() => {
+      goToNextQuestion()
+    }, 1200)
   }
 
-  if (score >= 5000) {
-    return {
-      name: 'SILVER',
-      icon: '🥈',
-      message: 'Vrlo dobro poznaješ zastave.',
+  function goToNextQuestion() {
+    const isLastQuestion =
+      questionIndex === gameLogos.length - 1
+
+    if (isLastQuestion) {
+      if (soundEnabled) {
+        playSound('finish', 0.7)
+      }
+
+      setIsFinished(true)
+      return
     }
+
+    setQuestionIndex(
+      (currentQuestionIndex) =>
+        currentQuestionIndex + 1,
+    )
   }
 
-  return {
-    name: 'BRONZE',
-    icon: '🥉',
-    message: 'Dobar početak. Probaj ponovo!',
+  function handleAnswer(answer) {
+    if (selectedAnswer) return
+
+    setSelectedAnswer(answer)
+
+    const isCorrect =
+      answer === currentLogo.name
+
+    if (isCorrect) {
+      if (soundEnabled) {
+        playSound('correct', 0.65)
+      }
+
+      setAnswerResult('correct')
+
+      const newStreak = streak + 1
+      const speedBonus = timeLeft * 20
+
+      const streakBonus =
+        newStreak >= 3
+          ? (newStreak - 2) * 100
+          : 0
+
+      const points =
+        500 + speedBonus + streakBonus
+
+      setStreak(newStreak)
+      setEarnedPoints(points)
+
+      setScore(
+        (currentScore) =>
+          currentScore + points,
+      )
+
+      setCorrectAnswers(
+        (currentCorrectAnswers) =>
+          currentCorrectAnswers + 1,
+      )
+    } else {
+      if (soundEnabled) {
+        playSound('wrong', 0.65)
+      }
+
+      setAnswerResult('wrong')
+      setStreak(0)
+      setEarnedPoints(0)
+    }
+
+    setTimeout(() => {
+      goToNextQuestion()
+    }, 1200)
   }
-}
-
-const finalRank = getRank()
-
-function handleTimeExpired() {
-  if (selectedAnswer) return
-
-  setSelectedAnswer('__time_expired__')
-
-  setTimeout(() => {
-    goToNextQuestion()
-  }, 1200)
-}
-
-function handleTimeExpired() {
-  if (selectedAnswer) return
-
-  playSound('wrong', 0.65)
-
-  setSelectedAnswer('__time_expired__')
-  setAnswerResult('timeout')
-  setStreak(0)
-  setEarnedPoints(0)
-
-  setTimeout(() => {
-    goToNextQuestion()
-  }, 1200)
-}
-
-function goToNextQuestion() {
-  const isLastQuestion =
-    questionIndex === gamelogos.length - 1
-
-if (isLastQuestion) {
-  playSound('finish', 0.7)
-  setIsFinished(true)
-  return
-}
-
-  setQuestionIndex(
-    (currentQuestionIndex) =>
-      currentQuestionIndex + 1,
-  )
-}
-
-function handleAnswer(answer) {
-  if (selectedAnswer) return
-
-  setSelectedAnswer(answer)
-
-  const isCorrect = answer === currentLogo.country
-
-if (isCorrect) {
-if (soundEnabled) {
-  playSound('correct', 0.65)
-}  setAnswerResult('correct')
-
-  const newStreak = streak + 1
-  const speedBonus = timeLeft * 20
-  const streakBonus =
-    newStreak >= 3 ? (newStreak - 2) * 100 : 0
-
-  const points = 500 + speedBonus + streakBonus
-
-  setStreak(newStreak)
-  setEarnedPoints(points)
-
-  setScore(
-    (currentScore) => currentScore + points,
-  )
-
-  setCorrectAnswers(
-    (currentCorrectAnswers) =>
-      currentCorrectAnswers + 1,
-  )
-} else {
-  if (soundEnabled) {
-  playSound('wrong', 0.65)
-}
-  setAnswerResult('wrong')
-  setStreak(0)
-  setEarnedPoints(0)
-}
-
-  setTimeout(() => {
-    goToNextQuestion()
-  }, 1200)
-}
 
   function getAnswerClass(answer) {
     if (!selectedAnswer) {
       return 'guess-flag-answer'
     }
 
-    if (answer === currentLogo.country) {
+    if (answer === currentLogo.name) {
       return 'guess-flag-answer correct'
     }
 
@@ -221,28 +256,34 @@ if (soundEnabled) {
     return 'guess-flag-answer disabled'
   }
 
-function restartGame() {
-  setGamelogos(shuffleArray(logos).slice(0, 10))
-  setQuestionIndex(0)
-  setSelectedAnswer(null)
-  setScore(0)
-  setCorrectAnswers(0)
-  setIsFinished(false)
-  setTimeLeft(QUESTION_TIME)
-  setStreak(0)
-setEarnedPoints(0)
-setAnswerResult(null)
-}
+  function restartGame() {
+    setGameLogos(
+      shuffleArray(logos).slice(0, 10),
+    )
+
+    setQuestionIndex(0)
+    setSelectedAnswer(null)
+    setScore(0)
+    setCorrectAnswers(0)
+    setIsFinished(false)
+    setTimeLeft(QUESTION_TIME)
+    setStreak(0)
+    setEarnedPoints(0)
+    setAnswerResult(null)
+  }
 
   if (isFinished) {
     const accuracy = Math.round(
-      (correctAnswers / gamelogos.length) * 100,
+      (correctAnswers / gameLogos.length) *
+        100,
     )
 
     return (
       <div className="guess-flag-page">
         <div className="guess-flag-results">
-          <div className="guess-flag-trophy">🏆</div>
+          <div className="guess-flag-trophy">
+            🏆
+          </div>
 
           <span className="guess-flag-results-label">
             IGRA ZAVRŠENA
@@ -252,7 +293,7 @@ setAnswerResult(null)
 
           <p>
             Prepoznao si {correctAnswers} od{' '}
-            {gamelogos.length} zastava.
+            {gameLogos.length} logotipa.
           </p>
 
           <div className="guess-flag-results-grid">
@@ -263,8 +304,9 @@ setAnswerResult(null)
 
             <div>
               <span>Tačni odgovori</span>
+
               <strong>
-                {correctAnswers}/{gamelogos.length}
+                {correctAnswers}/{gameLogos.length}
               </strong>
             </div>
 
@@ -274,20 +316,25 @@ setAnswerResult(null)
             </div>
           </div>
 
-          <div className={`guess-flag-rank rank-${finalRank.name.toLowerCase()}`}>
-  <div className="guess-flag-rank-icon">
-    {finalRank.icon}
-  </div>
+          <div
+            className={`guess-flag-rank rank-${finalRank.name.toLowerCase()}`}
+          >
+            <div className="guess-flag-rank-icon">
+              {finalRank.icon}
+            </div>
 
-  <span>OSVOJENI RANG</span>
+            <span>OSVOJENI RANG</span>
 
-  <strong>{finalRank.name}</strong>
+            <strong>{finalRank.name}</strong>
 
-  <p>{finalRank.message}</p>
-</div>
+            <p>{finalRank.message}</p>
+          </div>
 
           <div className="guess-flag-results-actions">
-            <button type="button" onClick={restartGame}>
+            <button
+              type="button"
+              onClick={restartGame}
+            >
               Igraj ponovo
             </button>
 
@@ -321,19 +368,23 @@ setAnswerResult(null)
 
         <div className="guess-flag-header-title">
           <span>GAME MODE</span>
-          <h1>Pogodi zastavu</h1>
+          <h1>Pogodi logo</h1>
         </div>
 
         <div className="guess-flag-score">
           <button
-  type="button"
-  className="guess-flag-sound-button"
-  onClick={() =>
-    setSoundEnabled((currentValue) => !currentValue)
-  }
->
-  {soundEnabled ? '🔊' : '🔇'}
-</button>
+            type="button"
+            className="guess-flag-sound-button"
+            onClick={() =>
+              setSoundEnabled(
+                (currentValue) =>
+                  !currentValue,
+              )
+            }
+          >
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
+
           <span>REZULTAT</span>
           <strong>{score}</strong>
         </div>
@@ -342,7 +393,8 @@ setAnswerResult(null)
       <main className="guess-flag-content">
         <div className="guess-flag-progress-info">
           <span>
-            Zastava {questionIndex + 1} / {gamelogos.length}
+            Logo {questionIndex + 1} /{' '}
+            {gameLogos.length}
           </span>
 
           <span>
@@ -355,7 +407,7 @@ setAnswerResult(null)
             style={{
               width: `${
                 ((questionIndex + 1) /
-                  gamelogos.length) *
+                  gameLogos.length) *
                 100
               }%`,
             }}
@@ -363,59 +415,65 @@ setAnswerResult(null)
         </div>
 
         <section
-  className={`guess-flag-card ${
-    answerResult ? `result-${answerResult}` : ''
-  }`}
->
+          className={`guess-flag-card ${
+            answerResult
+              ? `result-${answerResult}`
+              : ''
+          }`}
+        >
           <span className="guess-flag-question-label">
             KOJI JE OVO LOGO?
           </span>
 
           <div
-  className={`guess-flag-timer ${
-    timeLeft <= 5 ? 'warning' : ''
-  } ${timeLeft <= 3 ? 'danger' : ''}`}
-  style={{
-    '--timer-progress': `${
-      (timeLeft / QUESTION_TIME) * 360
-    }deg`,
-  }}
->
-  <div className="guess-flag-timer-inner">
-    <strong>{timeLeft}</strong>
-    <span>sek</span>
-  </div>
-</div>
+            className={`guess-flag-timer ${
+              timeLeft <= 5 ? 'warning' : ''
+            } ${
+              timeLeft <= 3 ? 'danger' : ''
+            }`}
+            style={{
+              '--timer-progress': `${
+                (timeLeft / QUESTION_TIME) *
+                360
+              }deg`,
+            }}
+          >
+            <div className="guess-flag-timer-inner">
+              <strong>{timeLeft}</strong>
+              <span>sek</span>
+            </div>
+          </div>
 
-{streak >= 2 && (
-  <div className="guess-flag-streak">
-    🔥 {streak}x STREAK
-  </div>
-)}
+          {streak >= 2 && (
+            <div className="guess-flag-streak">
+              🔥 {streak}x STREAK
+            </div>
+          )}
+
           <div className="guess-flag-image-wrapper">
-{selectedAnswer &&
-  selectedAnswer === currentLogo.country &&
-  earnedPoints > 0 && (
-    <div className="guess-flag-earned-points">
-      +{earnedPoints}
-    </div>
-  )}
+            {selectedAnswer ===
+              currentLogo.name &&
+              earnedPoints > 0 && (
+                <div className="guess-flag-earned-points">
+                  +{earnedPoints}
+                </div>
+              )}
 
-  {answerResult === 'wrong' && (
-  <div className="guess-flag-result-message wrong">
-    Netačno
-  </div>
-)}
+            {answerResult === 'wrong' && (
+              <div className="guess-flag-result-message wrong">
+                Netačno
+              </div>
+            )}
 
-{answerResult === 'timeout' && (
-  <div className="guess-flag-result-message timeout">
-    Vrijeme je isteklo
-  </div>
-)}
+            {answerResult === 'timeout' && (
+              <div className="guess-flag-result-message timeout">
+                Vrijeme je isteklo
+              </div>
+            )}
 
             <img
               src={currentLogo.image}
-              alt="Zastava države"
+              alt={`Logo brenda ${currentLogo.name}`}
               className="guess-flag-image"
             />
           </div>
@@ -425,12 +483,20 @@ setAnswerResult(null)
               <button
                 type="button"
                 key={answer}
-                className={getAnswerClass(answer)}
-                onClick={() => handleAnswer(answer)}
-                disabled={Boolean(selectedAnswer)}
+                className={getAnswerClass(
+                  answer,
+                )}
+                onClick={() =>
+                  handleAnswer(answer)
+                }
+                disabled={Boolean(
+                  selectedAnswer,
+                )}
               >
                 <span className="guess-flag-answer-letter">
-                  {String.fromCharCode(65 + index)}
+                  {String.fromCharCode(
+                    65 + index,
+                  )}
                 </span>
 
                 <span>{answer}</span>
