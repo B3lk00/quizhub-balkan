@@ -566,3 +566,76 @@
   background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
 }
+
+.guess-flag-rank {
+  width: min(100%, 380px);
+  margin: 24px auto;
+  padding: 24px 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.045);
+  animation: guess-flag-rank-appear 0.65s ease;
+}
+
+.guess-flag-rank-icon {
+  margin-bottom: 8px;
+  font-size: 58px;
+  line-height: 1;
+}
+
+.guess-flag-rank span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.guess-flag-rank strong {
+  display: block;
+  font-size: clamp(30px, 7vw, 46px);
+  font-weight: 1000;
+  letter-spacing: 2px;
+}
+
+.guess-flag-rank p {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 14px;
+}
+
+.guess-flag-rank.rank-bronze strong {
+  color: #d98b54;
+  text-shadow: 0 0 22px rgba(217, 139, 84, 0.3);
+}
+
+.guess-flag-rank.rank-silver strong {
+  color: #dce6ef;
+  text-shadow: 0 0 22px rgba(220, 230, 239, 0.3);
+}
+
+.guess-flag-rank.rank-gold strong {
+  color: #ffd35c;
+  text-shadow: 0 0 25px rgba(255, 211, 92, 0.35);
+}
+
+.guess-flag-rank.rank-diamond strong {
+  color: #66e8ff;
+  text-shadow:
+    0 0 18px rgba(102, 232, 255, 0.6),
+    0 0 38px rgba(102, 146, 255, 0.3);
+}
+
+@keyframes guess-flag-rank-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

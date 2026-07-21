@@ -86,6 +86,40 @@ useEffect(() => {
   }
 }, [timeLeft, selectedAnswer, isFinished])
 
+function getRank() {
+  if (score >= 10000) {
+    return {
+      name: 'DIAMOND',
+      icon: '💎',
+      message: 'Nevjerovatno! Pravi poznavalac zastava.',
+    }
+  }
+
+  if (score >= 7500) {
+    return {
+      name: 'GOLD',
+      icon: '🏆',
+      message: 'Odličan rezultat!',
+    }
+  }
+
+  if (score >= 5000) {
+    return {
+      name: 'SILVER',
+      icon: '🥈',
+      message: 'Vrlo dobro poznaješ zastave.',
+    }
+  }
+
+  return {
+    name: 'BRONZE',
+    icon: '🥉',
+    message: 'Dobar početak. Probaj ponovo!',
+  }
+}
+
+const finalRank = getRank()
+
 function handleTimeExpired() {
   if (selectedAnswer) return
 
@@ -239,6 +273,18 @@ setAnswerResult(null)
               <strong>{accuracy}%</strong>
             </div>
           </div>
+
+          <div className={`guess-flag-rank rank-${finalRank.name.toLowerCase()}`}>
+  <div className="guess-flag-rank-icon">
+    {finalRank.icon}
+  </div>
+
+  <span>OSVOJENI RANG</span>
+
+  <strong>{finalRank.name}</strong>
+
+  <p>{finalRank.message}</p>
+</div>
 
           <div className="guess-flag-results-actions">
             <button type="button" onClick={restartGame}>
