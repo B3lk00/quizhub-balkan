@@ -9,14 +9,14 @@ const gameModes = [
     status: 'active',
     players: 'Solo igra',
   },
-  {
-    id: 'guess-car',
-    title: 'Pogodi automobil',
-    description: 'Prepoznaj marku ili model automobila.',
-    icon: '🚗',
-    status: 'coming-soon',
-    players: 'Uskoro',
-  },
+{
+  id: 'guess-car',
+  title: 'Pogodi automobil',
+  description: 'Prepoznaj marku ili model automobila.',
+  icon: '🚗',
+  status: 'active',
+  players: 'Solo igra',
+},
   {
     id: 'guess-logo',
     title: 'Pogodi logo',

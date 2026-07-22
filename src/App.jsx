@@ -12,6 +12,7 @@ import ResultsPage from './pages/ResultsPage'
 import GameModes from './pages/GameModes'
 import GuessFlag from './pages/GuessFlag'
 import GuessLogo from './pages/GuessLogo'
+import GuessCar from './pages/GuessCar'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -1102,6 +1103,14 @@ const everyoneFinished =
 
 {currentPage === 'guess-logo' && (
   <GuessLogo
+    onBack={() =>
+      setCurrentPage('game-modes')
+    }
+  />
+)}
+
+{currentPage === 'guess-car' && (
+  <GuessCar
     onBack={() =>
       setCurrentPage('game-modes')
     }
