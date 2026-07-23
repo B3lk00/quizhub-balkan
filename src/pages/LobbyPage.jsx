@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
+import './LobbyPage.css'
 
 function LobbyPage({ roomData, onBack }) {
   const [copiedMessage, setCopiedMessage] =
@@ -11,7 +12,6 @@ function LobbyPage({ roomData, onBack }) {
 
   const [chatMessage, setChatMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
-
   const messagesEndRef = useRef(null)
 
   const roomLink =
@@ -63,6 +63,17 @@ function LobbyPage({ roomData, onBack }) {
     }
 
     setIsSending(false)
+  }
+
+  function getGameModeName(gameMode) {
+    const gameModeNames = {
+      'classic-quiz': 'Obični kviz',
+      'guess-flag': 'Pogodi zastavu',
+      'guess-logo': 'Pogodi logo',
+      'guess-car': 'Pogodi automobil',
+    }
+
+    return gameModeNames[gameMode] || 'Pogodi logo'
   }
 
   function formatMessageTime(dateValue) {
@@ -309,6 +320,14 @@ function LobbyPage({ roomData, onBack }) {
           <h2>Detalji partije</h2>
 
           <div className="setting-item">
+            <span>Vrsta igre</span>
+
+            <strong className="selected-game-mode">
+              {getGameModeName(roomData.gameMode)}
+            </strong>
+          </div>
+
+          <div className="setting-item">
             <span>Kategorija</span>
             <strong>{roomData.category}</strong>
           </div>
@@ -369,7 +388,16 @@ function LobbyPage({ roomData, onBack }) {
               className="start-quiz-button"
               onClick={roomData.onStart}
             >
-              Pokreni kviz
+              <span className="start-quiz-icon">▶</span>
+
+              <span className="start-quiz-text">
+                <strong>Pokreni igru</strong>
+                <small>
+                  Svi igrači kreću istovremeno
+                </small>
+              </span>
+
+              <span className="start-quiz-arrow">→</span>
             </button>
           ) : (
             <div className="waiting-for-host">

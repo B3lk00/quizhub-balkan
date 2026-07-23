@@ -13,6 +13,8 @@ import GameModes from './pages/GameModes'
 import GuessFlag from './pages/GuessFlag'
 import GuessLogo from './pages/GuessLogo'
 import GuessCar from './pages/GuessCar'
+import MultiplayerGuessLogo from './pages/MultiplayerGuessLogo'
+import { logos } from './data/questions/logos'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home')
@@ -93,15 +95,27 @@ useEffect(() => {
       async (payload) => {
   const updatedRoom = payload.new
 
-        setRoomData((previousRoom) => ({
-          ...previousRoom,
-          status: updatedRoom.status,
-          currentQuestion: updatedRoom.current_question,
-        }))
+setRoomData((previousRoom) => ({
+  ...previousRoom,
+  status: updatedRoom.status,
+  gameStatus:
+    updatedRoom.game_status,
+  currentQuestion:
+    updatedRoom.current_question || 0,
+  gameMode:
+    updatedRoom.game_mode || 'classic-quiz',
+  questionIds:
+    updatedRoom.question_ids || [],
+  questionOrder:
+    updatedRoom.question_order || [],
+  questionStartedAt:
+    updatedRoom.question_started_at || null,
+}))
 
 if (
   updatedRoom.status === 'playing' &&
-  currentPage !== 'quiz'
+  currentPage !== 'quiz' &&
+  !currentPage.startsWith('multiplayer-')
 ) {
   const { data: activePlayer, error: playerCheckError } =
     await supabase
@@ -125,20 +139,50 @@ if (
     return
   }
 
-  const selectedQuestions = getQuestionsByIds(
-    updatedRoom.question_ids,
+  const selectedGameMode =
+    updatedRoom.game_mode || 'classic-quiz'
+
+  setRoomData((previousRoom) => ({
+    ...previousRoom,
+    status: updatedRoom.status,
+    gameStatus:
+      updatedRoom.game_status,
+    currentQuestion:
+      updatedRoom.current_question || 0,
+    gameMode: selectedGameMode,
+    questionIds:
+      updatedRoom.question_ids || [],
+    questionOrder:
+      updatedRoom.question_order || [],
+    questionStartedAt:
+      updatedRoom.question_started_at || null,
+  }))
+
+  setCurrentQuestion(
+    updatedRoom.current_question || 0,
   )
 
-  if (selectedQuestions.length === 0) {
-    console.error('Pitanja nisu pronađena.')
+  setFinalScore(0)
+
+  if (selectedGameMode === 'classic-quiz') {
+    const selectedQuestions = getQuestionsByIds(
+      updatedRoom.question_ids || [],
+    )
+
+    if (selectedQuestions.length === 0) {
+      console.error(
+        'Pitanja običnog kviza nisu pronađena.',
+      )
+      return
+    }
+
+    setGameQuestions(selectedQuestions)
+    setCurrentPage('quiz')
+    window.scrollTo(0, 0)
     return
   }
 
-  setGameQuestions(selectedQuestions)
-  setCurrentQuestion(0)
-  setFinalScore(0)
-  setCurrentPage('quiz')
-  window.scrollTo(0, 0)
+  openSelectedGameMode(selectedGameMode)
 }
       },
     )
@@ -446,6 +490,34 @@ async function kickPlayer(playerId) {
   )
 }
 
+async function changeGameMode(gameMode) {
+  if (!roomData?.id || !isCurrentPlayerHost) {
+    return
+  }
+
+  const { error } = await supabase
+    .from('rooms')
+    .update({
+      game_mode: gameMode,
+    })
+    .eq('id', roomData.id)
+
+  if (error) {
+    console.error(
+      'Greška pri promjeni moda:',
+      error,
+    )
+
+    alert('Game mode nije promijenjen.')
+    return
+  }
+
+  setRoomData((currentRoom) => ({
+    ...currentRoom,
+    gameMode,
+  }))
+}
+
   async function createRoom(settings) {
   const roomCode = Math.floor(
     100000 + Math.random() * 900000,
@@ -459,6 +531,8 @@ async function kickPlayer(playerId) {
         category: settings.category,
         question_count: Number(settings.questionCount),
         time_limit: Number(settings.timeLimit),
+        game_mode: settings.gameMode || 'classic-quiz',
+        game_status: 'lobby',
         status: 'lobby',
         current_question: 0,
       })
@@ -507,7 +581,16 @@ async function kickPlayer(playerId) {
     questionCount: createdRoom.question_count,
     timeLimit: createdRoom.time_limit,
     status: createdRoom.status,
+    gameMode:
+      createdRoom.game_mode ||
+      settings.gameMode ||
+      'classic-quiz',
+    gameStatus:
+      createdRoom.game_status || 'lobby',
     questionIds: createdRoom.question_ids || [],
+    questionOrder: createdRoom.question_order || [],
+    questionStartedAt:
+      createdRoom.question_started_at || null,
   })
 
 setCurrentPlayerId(createdHost.id)
@@ -621,7 +704,14 @@ async function joinRoom({ playerName, roomCode }) {
       timeLimit: foundRoom.time_limit,
       status: foundRoom.status,
       currentQuestion: foundRoom.current_question || 0,
+      gameMode:
+        foundRoom.game_mode || 'classic-quiz',
+      gameStatus:
+        foundRoom.game_status || 'lobby',
       questionIds: foundRoom.question_ids || [],
+      questionOrder: foundRoom.question_order || [],
+      questionStartedAt:
+        foundRoom.question_started_at || null,
     })
 
     setPlayers([
@@ -740,6 +830,49 @@ function getQuestionsByIds(questionIds) {
     .filter(Boolean)
 }
 
+function openSelectedGameMode(gameMode) {
+  const selectedMode = gameMode || 'guess-logo'
+
+  if (selectedMode === 'guess-flag') {
+    setCurrentPage('multiplayer-guess-flag')
+  } else if (selectedMode === 'guess-car') {
+    setCurrentPage('multiplayer-guess-car')
+  } else {
+    setCurrentPage('multiplayer-guess-logo')
+  }
+
+  window.scrollTo(0, 0)
+}
+
+function shuffleItems(items) {
+  return [...items].sort(() => Math.random() - 0.5)
+}
+
+function createLogoQuestionOrder(questionCount = 10) {
+  const selectedLogos = shuffleItems(logos).slice(
+    0,
+    Number(questionCount) || 10,
+  )
+
+  return selectedLogos.map((currentLogo) => {
+    const wrongAnswers = shuffleItems(
+      logos.filter(
+        (logo) => logo.name !== currentLogo.name,
+      ),
+    )
+      .slice(0, 3)
+      .map((logo) => logo.name)
+
+    return {
+      name: currentLogo.name,
+      answers: shuffleItems([
+        currentLogo.name,
+        ...wrongAnswers,
+      ]),
+    }
+  })
+}
+
 async function startQuiz() {
   if (!roomData?.id) {
     alert('Soba nije pronađena.')
@@ -751,52 +884,127 @@ async function startQuiz() {
   )
 
   if (!currentPlayer?.isHost) {
-    alert('Samo domaćin može pokrenuti kviz.')
+    alert('Samo domaćin može pokrenuti igru.')
     return
   }
 
-  const selectedQuestions = createGameQuestions(
-    roomData.category,
+  const selectedGameMode =
+    roomData.gameMode || 'classic-quiz'
+
+  const startedAt = new Date().toISOString()
+
+  if (selectedGameMode === 'classic-quiz') {
+    const selectedQuestions = createGameQuestions(
+      roomData.category,
+      roomData.questionCount,
+    )
+
+    if (selectedQuestions.length === 0) {
+      alert(
+        'Nema dostupnih pitanja za izabranu kategoriju.',
+      )
+      return
+    }
+
+    const questionIds = selectedQuestions.map(
+      (question) => question.id,
+    )
+
+    const { error } = await supabase
+      .from('rooms')
+      .update({
+        status: 'playing',
+        game_status: 'playing',
+        game_mode: 'classic-quiz',
+        current_question: 0,
+        question_ids: questionIds,
+        question_order: [],
+        question_started_at: startedAt,
+      })
+      .eq('id', roomData.id)
+
+    if (error) {
+      console.error(
+        'Greška pri pokretanju običnog kviza:',
+        error,
+      )
+      alert('Kviz nije moguće pokrenuti.')
+      return
+    }
+
+    setGameQuestions(selectedQuestions)
+    setCurrentQuestion(0)
+    setFinalScore(0)
+
+    setRoomData((previousRoom) => ({
+      ...previousRoom,
+      status: 'playing',
+      gameStatus: 'playing',
+      gameMode: 'classic-quiz',
+      currentQuestion: 0,
+      questionIds,
+      questionOrder: [],
+      questionStartedAt: startedAt,
+    }))
+
+    setCurrentPage('quiz')
+    window.scrollTo(0, 0)
+    return
+  }
+
+  if (selectedGameMode !== 'guess-logo') {
+    alert(
+      'Multiplayer za ovaj game mode još nije završen. Za sada pokreni Obični kviz ili Pogodi logo.',
+    )
+    return
+  }
+
+  const questionOrder = createLogoQuestionOrder(
     roomData.questionCount,
   )
 
-  if (selectedQuestions.length === 0) {
-    alert('Nema dostupnih pitanja za ovu kategoriju.')
+  if (questionOrder.length === 0) {
+    alert('Nema dostupnih logo pitanja.')
     return
   }
-
-  const questionIds = selectedQuestions.map(
-    (question) => question.id,
-  )
 
   const { error } = await supabase
     .from('rooms')
     .update({
       status: 'playing',
+      game_status: 'playing',
       current_question: 0,
-      question_ids: questionIds,
+      question_ids: [],
+      question_order: questionOrder,
+      question_started_at: startedAt,
+      game_mode: selectedGameMode,
     })
     .eq('id', roomData.id)
 
   if (error) {
-    console.error('Greška pri pokretanju kviza:', error)
-    alert('Kviz nije moguće pokrenuti.')
+    console.error(
+      'Greška pri pokretanju logo igre:',
+      error,
+    )
+    alert('Igru nije moguće pokrenuti.')
     return
   }
 
-  setGameQuestions(selectedQuestions)
   setCurrentQuestion(0)
   setFinalScore(0)
 
   setRoomData((previousRoom) => ({
     ...previousRoom,
     status: 'playing',
+    gameStatus: 'playing',
     currentQuestion: 0,
-    questionIds,
+    gameMode: selectedGameMode,
+    questionIds: [],
+    questionOrder,
+    questionStartedAt: startedAt,
   }))
 
-  setCurrentPage('quiz')
-  window.scrollTo(0, 0)
+  openSelectedGameMode(selectedGameMode)
 }
 
 async function completeAnswer(points) {
@@ -1109,6 +1317,29 @@ const everyoneFinished =
   />
 )}
 
+{currentPage === 'multiplayer-guess-logo' &&
+  roomData && (
+    <MultiplayerGuessLogo
+      roomData={roomData}
+      currentPlayerId={currentPlayerId}
+      isHost={isCurrentPlayerHost}
+      playerCount={players.length}
+      onBack={leaveRoom}
+    />
+  )}
+
+{currentPage === 'multiplayer-guess-flag' && (
+  <GuessFlag
+    onBack={leaveRoom}
+  />
+)}
+
+{currentPage === 'multiplayer-guess-car' && (
+  <GuessCar
+    onBack={leaveRoom}
+  />
+)}
+
 {currentPage === 'guess-car' && (
   <GuessCar
     onBack={() =>
@@ -1142,6 +1373,7 @@ const everyoneFinished =
       onKickPlayer: kickPlayer,
       onSendMessage: sendMessage,
       isHost: isCurrentPlayerHost,
+      onChangeGameMode: changeGameMode,
       
     }}
     onBack={leaveRoom}

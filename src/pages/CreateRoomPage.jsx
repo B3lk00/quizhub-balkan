@@ -2,11 +2,21 @@ import { useState } from 'react'
 
 function CreateRoomPage({ onBack, onCreate }) {
   const [hostName, setHostName] = useState('')
-  const [category, setCategory] = useState('Opće znanje')
-  const [questionCount, setQuestionCount] = useState('10')
-  const [timeLimit, setTimeLimit] = useState('20')
+  const [gameMode, setGameMode] =
+    useState('classic-quiz')
+  const [category, setCategory] =
+    useState('Opće znanje')
+  const [questionCount, setQuestionCount] =
+    useState('10')
+  const [timeLimit, setTimeLimit] =
+    useState('20')
+  const [isCreating, setIsCreating] =
+    useState(false)
 
-  function handleSubmit(event) {
+  const isClassicQuiz =
+    gameMode === 'classic-quiz'
+
+  async function handleSubmit(event) {
     event.preventDefault()
 
     if (!hostName.trim()) {
@@ -14,17 +24,34 @@ function CreateRoomPage({ onBack, onCreate }) {
       return
     }
 
-    onCreate({
-      hostName: hostName.trim(),
-      category,
-      questionCount,
-      timeLimit,
-    })
+    if (isCreating) {
+      return
+    }
+
+    setIsCreating(true)
+
+    try {
+      await onCreate({
+        hostName: hostName.trim(),
+        gameMode,
+        category: isClassicQuiz
+          ? category
+          : 'Game mode',
+        questionCount,
+        timeLimit,
+      })
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
     <section className="page-screen">
-      <button className="back-button" onClick={onBack}>
+      <button
+        type="button"
+        className="back-button"
+        onClick={onBack}
+      >
         ← Nazad
       </button>
 
@@ -33,13 +60,16 @@ function CreateRoomPage({ onBack, onCreate }) {
           <span className="form-icon">🎮</span>
 
           <div>
-            <span className="eyebrow">Nova partija</span>
+            <span className="eyebrow">
+              Nova partija
+            </span>
             <h1>Kreiraj sobu</h1>
           </div>
         </div>
 
         <p className="form-description">
-          Podesi osnovna pravila igre i otvori čekaonicu za svoje prijatelje.
+          Izaberi vrstu igre, podesi pravila i
+          otvori čekaonicu za prijatelje.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -50,28 +80,62 @@ function CreateRoomPage({ onBack, onCreate }) {
               type="text"
               placeholder="Naprimjer: Belko"
               value={hostName}
-              onChange={(event) => setHostName(event.target.value)}
-              maxLength="20"
+              onChange={(event) =>
+                setHostName(event.target.value)
+              }
+              maxLength={20}
+              autoComplete="off"
             />
           </label>
 
           <label className="form-field">
-            <span>Kategorija</span>
+            <span>Vrsta igre</span>
 
             <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
+              value={gameMode}
+              onChange={(event) =>
+                setGameMode(event.target.value)
+              }
             >
-              <option>Opće znanje</option>
-              <option>Automobili</option>
-              <option>Filmovi i serije</option>
-              <option>Sport</option>
-              <option>Muzika</option>
-              <option>Geografija</option>
-              <option>Historija</option>
-              <option>Gaming</option>
+              <option value="classic-quiz">
+                Obični kviz
+              </option>
+
+              <option value="guess-logo">
+                Pogodi logo
+              </option>
+
+              <option value="guess-flag">
+                Pogodi zastavu
+              </option>
+
+              <option value="guess-car">
+                Pogodi automobil
+              </option>
             </select>
           </label>
+
+          {isClassicQuiz && (
+            <label className="form-field">
+              <span>Kategorija</span>
+
+              <select
+                value={category}
+                onChange={(event) =>
+                  setCategory(event.target.value)
+                }
+              >
+                <option>Opće znanje</option>
+                <option>Automobili</option>
+                <option>Filmovi i serije</option>
+                <option>Sport</option>
+                <option>Muzika</option>
+                <option>Geografija</option>
+                <option>Historija</option>
+                <option>Gaming</option>
+              </select>
+            </label>
+          )}
 
           <div className="form-row">
             <label className="form-field">
@@ -79,12 +143,24 @@ function CreateRoomPage({ onBack, onCreate }) {
 
               <select
                 value={questionCount}
-                onChange={(event) => setQuestionCount(event.target.value)}
+                onChange={(event) =>
+                  setQuestionCount(
+                    event.target.value,
+                  )
+                }
               >
-                <option value="10">10 pitanja</option>
-                <option value="15">15 pitanja</option>
-                <option value="20">20 pitanja</option>
-                <option value="30">30 pitanja</option>
+                <option value="5">
+                  5 pitanja
+                </option>
+                <option value="10">
+                  10 pitanja
+                </option>
+                <option value="15">
+                  15 pitanja
+                </option>
+                <option value="20">
+                  20 pitanja
+                </option>
               </select>
             </label>
 
@@ -93,19 +169,38 @@ function CreateRoomPage({ onBack, onCreate }) {
 
               <select
                 value={timeLimit}
-                onChange={(event) => setTimeLimit(event.target.value)}
+                onChange={(event) =>
+                  setTimeLimit(event.target.value)
+                }
               >
-                <option value="10">10 sekundi</option>
-                <option value="15">15 sekundi</option>
-                <option value="20">20 sekundi</option>
-                <option value="30">30 sekundi</option>
+                <option value="10">
+                  10 sekundi
+                </option>
+                <option value="15">
+                  15 sekundi
+                </option>
+                <option value="20">
+                  20 sekundi
+                </option>
+                <option value="30">
+                  30 sekundi
+                </option>
               </select>
             </label>
           </div>
 
-          <button className="submit-button" type="submit">
-            Kreiraj sobu
-            <span>→</span>
+          <button
+            className="submit-button"
+            type="submit"
+            disabled={isCreating}
+          >
+            <span>
+              {isCreating
+                ? 'Kreiram sobu...'
+                : 'Kreiraj sobu'}
+            </span>
+
+            {!isCreating && <span>→</span>}
           </button>
         </form>
       </div>
